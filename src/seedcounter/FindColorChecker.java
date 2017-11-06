@@ -41,75 +41,75 @@ public class FindColorChecker {
 		MatOfKeyPoint descriptors = new MatOfKeyPoint();
 		extractor.compute(image, keypoints, descriptors);
 
-        LinkedList<DMatch> goodMatches = getGoodMatches(descriptors);
+		LinkedList<DMatch> goodMatches = getGoodMatches(descriptors);
 
-        Mat homography = getHomography(keypoints, goodMatches);
+		Mat homography = getHomography(keypoints, goodMatches);
 
-        return getQuad(homography);
+		return getQuad(homography);
 	}
 
 	private LinkedList<DMatch> getGoodMatches(MatOfKeyPoint descriptors) {
 		List<MatOfDMatch> matches = new LinkedList<MatOfDMatch>();
-        DescriptorMatcher descriptorMatcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
-        descriptorMatcher.knnMatch(referenceDescriptors, descriptors, matches, 2);
+		DescriptorMatcher descriptorMatcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
+		descriptorMatcher.knnMatch(referenceDescriptors, descriptors, matches, 2);
 
-        LinkedList<DMatch> goodMatches = new LinkedList<DMatch>();
-        float nndrRatio = 0.7f;
+		LinkedList<DMatch> goodMatches = new LinkedList<DMatch>();
+		float nndrRatio = 0.7f;
 
-        for (MatOfDMatch matofDMatch : matches) {
-        	DMatch[] dmatcharray = matofDMatch.toArray();
-        	DMatch m1 = dmatcharray[0];
-        	DMatch m2 = dmatcharray[1];
+		for (MatOfDMatch matofDMatch : matches) {
+			DMatch[] dmatcharray = matofDMatch.toArray();
+			DMatch m1 = dmatcharray[0];
+			DMatch m2 = dmatcharray[1];
 
-        	if (m1.distance <= m2.distance * nndrRatio) {
-        		goodMatches.addLast(m1);
-        	}
-        }
+			if (m1.distance <= m2.distance * nndrRatio) {
+				goodMatches.addLast(m1);
+			}
+		}
 
-        System.out.println(goodMatches.size());
-        return goodMatches;
+		System.out.println(goodMatches.size());
+		return goodMatches;
 	}
 
 	private Mat getHomography(MatOfKeyPoint keypoints, LinkedList<DMatch> goodMatches) {
-        List<KeyPoint> referenceKeypointlist = referenceKeypoints.toList();
-        List<KeyPoint> keypointlist = keypoints.toList();
+		List<KeyPoint> referenceKeypointlist = referenceKeypoints.toList();
+		List<KeyPoint> keypointlist = keypoints.toList();
 
-        LinkedList<Point> referencePoints = new LinkedList<>();
-        LinkedList<Point> points = new LinkedList<>();
+		LinkedList<Point> referencePoints = new LinkedList<>();
+		LinkedList<Point> points = new LinkedList<>();
 
-        for (int i = 0; i < goodMatches.size(); i++) {
-        	referencePoints.addLast(referenceKeypointlist.get(goodMatches.get(i).queryIdx).pt);
-        	points.addLast(keypointlist.get(goodMatches.get(i).trainIdx).pt);
-        }
+		for (int i = 0; i < goodMatches.size(); i++) {
+			referencePoints.addLast(referenceKeypointlist.get(goodMatches.get(i).queryIdx).pt);
+			points.addLast(keypointlist.get(goodMatches.get(i).trainIdx).pt);
+		}
 
-        MatOfPoint2f referenceMatOfPoint2f = new MatOfPoint2f();
-        referenceMatOfPoint2f.fromList(referencePoints);
-        MatOfPoint2f matOfPoint2f = new MatOfPoint2f();
-        matOfPoint2f.fromList(points);
+		MatOfPoint2f referenceMatOfPoint2f = new MatOfPoint2f();
+		referenceMatOfPoint2f.fromList(referencePoints);
+		MatOfPoint2f matOfPoint2f = new MatOfPoint2f();
+		matOfPoint2f.fromList(points);
 
-        return Calib3d.findHomography(referenceMatOfPoint2f, matOfPoint2f, Calib3d.RANSAC, 3);
+		return Calib3d.findHomography(referenceMatOfPoint2f, matOfPoint2f, Calib3d.RANSAC, 3);
 	}
 
 	private Quad getQuad(Mat homography) {
 		Mat referenceCorners = new Mat(4, 1, CvType.CV_32FC2);
-        Mat corners = new Mat(4, 1, CvType.CV_32FC2);
+		Mat corners = new Mat(4, 1, CvType.CV_32FC2);
 
-        referenceCorners.put(0, 0, new double[]{-0.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
-        referenceCorners.put(1, 0, new double[]{1.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
-        referenceCorners.put(2, 0, new double[]{1.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
-        referenceCorners.put(3, 0, new double[]{-0.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
+		referenceCorners.put(0, 0, new double[]{-0.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
+		referenceCorners.put(1, 0, new double[]{1.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
+		referenceCorners.put(2, 0, new double[]{1.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
+		referenceCorners.put(3, 0, new double[]{-0.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
 
-        Core.perspectiveTransform(referenceCorners, corners, homography);
+		Core.perspectiveTransform(referenceCorners, corners, homography);
 
-        return new Quad(new Point(corners.get(0, 0)),new Point(corners.get(1, 0)),
-        		new Point(corners.get(2, 0)), new Point(corners.get(3, 0)));
+		return new Quad(new Point(corners.get(0, 0)),new Point(corners.get(1, 0)),
+				new Point(corners.get(2, 0)), new Point(corners.get(3, 0)));
 	}
 
 	public void fillColorChecker(Mat image, Quad quad) {
-        MatOfPoint points = new MatOfPoint();
+		MatOfPoint points = new MatOfPoint();
 
-        points.fromArray(quad.getPoints());
-        Core.fillConvexPoly(image, points, getBackgroundColor(image, quad));		
+		points.fromArray(quad.getPoints());
+		Core.fillConvexPoly(image, points, getBackgroundColor(image, quad));
 	}
 
 	public void initReference(String referenceFile) {
@@ -187,9 +187,9 @@ public class FindColorChecker {
 
 			Highgui.imwrite(inputFile.replaceFirst("[.][^.]+$", ".output.png"), image);
 
-            ColorChecker checker = new ColorChecker(extractedColorChecker);
-            Mat calibrated = checker.brightnessCalibrationBgr(image);
-            Highgui.imwrite(inputFile.replaceFirst("[.][^.]+$", ".calibrated.png"), calibrated);
+			ColorChecker checker = new ColorChecker(extractedColorChecker);
+			Mat calibrated = checker.brightnessCalibrationBgr(image);
+			Highgui.imwrite(inputFile.replaceFirst("[.][^.]+$", ".calibrated.png"), calibrated);
 		}
 	}
 }

@@ -90,16 +90,16 @@ public class ColorChecker {
 		OLSMultipleLinearRegression regressor = new OLSMultipleLinearRegression();
 		regressor.setNoIntercept(false);
 		regressor.newSampleData(answersArray, trainArray);
-	    double[] beta = regressor.estimateRegressionParameters();
+		double[] beta = regressor.estimateRegressionParameters();
 
-	    for (Integer row = 0; row < srcImage.rows(); ++row) {
-	    	for (Integer col = 0; col < srcImage.cols(); ++col) {
-	    		double[] srcColor = srcImage.get(row, col);
-	    		double[] dscColor = dscImage.get(row, col);
-	    		dscColor[channel] = beta[0] + beta[1] * srcColor[0] + beta[2] * srcColor[1] + beta[3] * srcColor[2];
-	    		dscImage.put(row, col, dscColor);
-	    	}
-	    }
+		for (Integer row = 0; row < srcImage.rows(); ++row) {
+			for (Integer col = 0; col < srcImage.cols(); ++col) {
+				double[] srcColor = srcImage.get(row, col);
+				double[] dscColor = dscImage.get(row, col);
+				dscColor[channel] = beta[0] + beta[1] * srcColor[0] + beta[2] * srcColor[1] + beta[3] * srcColor[2];
+				dscImage.put(row, col, dscColor);
+			}
+		}
 	}
 
 	public Mat brightnessCalibration(Mat srcImage) {
@@ -129,15 +129,15 @@ public class ColorChecker {
 		regressor.setNoIntercept(true);
 		regressor.newSampleData(answersArray, trainArray);
 		System.out.println(regressor.isNoIntercept());
-	    double[] beta = regressor.estimateRegressionParameters();
+		double[] beta = regressor.estimateRegressionParameters();
 
-	    for (Integer row = 0; row < cieImage.rows(); ++row) {
-	    	for (Integer col = 0; col < cieImage.cols(); ++col) {
-	    		double[] color = cieImage.get(row, col);
-	    		color[2] = beta[0] * color[0] + beta[1] * color[1] + beta[2] * color[2];
-	    		cieImage.put(row, col, color);
-	    	}
-	    }
+		for (Integer row = 0; row < cieImage.rows(); ++row) {
+			for (Integer col = 0; col < cieImage.cols(); ++col) {
+				double[] color = cieImage.get(row, col);
+				color[2] = beta[0] * color[0] + beta[1] * color[1] + beta[2] * color[2];
+				cieImage.put(row, col, color);
+			}
+		}
 
 		return cieToBgr(cieImage);
 	}
