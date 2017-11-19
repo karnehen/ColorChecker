@@ -71,7 +71,7 @@ public class ColorChecker {
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
-				List<double[]> sample = getSampleColors(this.image, row, col);
+				List<double[]> sample = getSampleColors(this.image, row, col, false);
 				train.addAll(sample);
 				for (Integer i = 0; i < sample.size(); ++i) {
 					Scalar refColor = BGR_REFERENCE_COLORS.get(row).get(col);
@@ -110,7 +110,7 @@ public class ColorChecker {
 
 		for (Integer row = 0; row < 6; ++row) {
 			Integer col = 3;
-			List<double[]> sample = getSampleColors(referenceImage, row, col);
+			List<double[]> sample = getSampleColors(referenceImage, row, col, false);
 			train.addAll(sample);
 			for (Integer i = 0; i < sample.size(); ++i) {
 				Scalar refColor = REFERENCE_COLORS.get(row).get(col);
@@ -140,6 +140,22 @@ public class ColorChecker {
 		}
 
 		return cieToBgr(cieImage);
+	}
+
+	public CellColors getCellColors(Mat image) {
+		CellColors cellColors = new CellColors();
+
+		for (Integer row = 0; row < 6; ++row) {
+			for (Integer col = 0; col < 4; ++col) {
+				List<double[]> actualColors = getSampleColors(this.image, row, col, false);
+				Color referenceColor = Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col));
+				for (double[] c : actualColors) {
+					cellColors.addColor(Color.ofBGR(c), referenceColor);
+				}
+			}
+		}
+
+		return cellColors;
 	}
 
 	private Mat bgrToCie(Mat srcImage) {
@@ -183,58 +199,32 @@ public class ColorChecker {
 		return result;
 	}
 
-	private List<double[]> getSampleColors(Mat image, Integer row, Integer column) {
-		Point center = centers.get(row).get(column);
+	private List<double[]> getSampleColors(Mat image, Integer row,
+			Integer col, boolean allPoints) {
+		Point center = centers.get(row).get(col);
 		List<Point> points = getSurroundingPoints(center);
 
 		List<double[]> colors = new ArrayList<double[]>();
 
-		for (Point p : points) {
-			double[] color = image.get((int)p.y, (int)p.x);
-			colors.add(color);
+		if (allPoints) {
+			int minX = (int) points.get(0).x;
+			int minY = (int) points.get(0).y;
+			int maxX = (int) points.get(8).x;
+			int maxY = (int) points.get(8).y;
+			for (int y = minY; y <= maxY; ++y) {
+				for (int x = minX; x <= maxX; ++x) {
+					double[] color = image.get(y, x);
+					colors.add(color);
+				}
+			}
+		} else {
+			for (Point p : points) {
+				double[] color = image.get((int)p.y, (int)p.x);
+				colors.add(color);
+			}
 		}
 
 		return colors;
-	}
-
-	public Color getColor(Integer row, Integer column) {
-		Point center = centers.get(row).get(column);
-		List<Point> points = getSurroundingPoints(center);
-
-		List<Double> red = new ArrayList<Double>();
-		List<Double> green = new ArrayList<Double>();
-		List<Double> blue = new ArrayList<Double>();
-		int i = 0;
-
-		for (Point p : points) {
-			double[] color = this.image.get((int)p.y, (int)p.x);
-			blue.add(color[0]);
-			green.add(color[1]);
-			red.add(color[2]);
-			i = 255 - i;
-		}
-
-		return new Color(
-			new Scalar(mean(blue), mean(green), mean(red)),
-			new Scalar(std(blue), std(green), std(red))
-		);
-	}
-
-	private Double mean(List<Double> numbers) {
-		double result = 0.0;
-		for (Double n : numbers) {
-			result += n;
-		}
-		return result / numbers.size();
-	}
-
-	private Double std(List<Double> numbers) {
-		double average = mean(numbers);
-		double result = 0.0;
-		for (Double n : numbers) {
-			result += Math.pow(n - average, 2.0);
-		}
-		return Math.sqrt(result / (numbers.size() - 1));
 	}
 
 	private List<Point> getSurroundingPoints(Point center) {
@@ -249,23 +239,5 @@ public class ColorChecker {
 			new Point(center.x, center.y + this.yScale),
 			new Point(center.x + this.xScale, center.y + this.yScale)
 		);
-	}
-
-	public class Color {
-		private Scalar mean;
-		private Scalar std;
-
-		Color(Scalar mean, Scalar std) {
-			this.mean = mean;
-			this.std = std;
-		}
-
-		public Scalar mean() {
-			return this.mean;
-		}
-
-		public Scalar std() {
-			return this.std;
-		}
 	}
 }
