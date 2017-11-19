@@ -33,13 +33,13 @@ public class ColorChecker {
 
 	private final List<Double> xCenters = Arrays.asList(1.0 / 8.0, 3.0 / 8.0, 5.0 / 8.0, 7.0 / 8.0);
 	private final List<Double> yCenters = Arrays.asList(1.0 / 7.0, 2.0 / 7.0, 3.0 / 7.0, 4.0 / 7.0, 5.0 / 7.0, 6.0 / 7.0);
-	private Mat image;
+	private Mat checkerImage;
 	private List<List<Point>> centers;
 	private Integer xScale;
 	private Integer yScale;
 
 	public ColorChecker(Mat image) {
-		this.image = image.clone();
+		this.checkerImage = image.clone();
 		Integer width = image.width();
 		Integer height = image.height();
 		xScale = (int) (0.06 * width);
@@ -55,7 +55,7 @@ public class ColorChecker {
 		}
 	}
 
-	public Mat brightnessCalibrationBgr(Mat srcImage) {
+	public Mat calibrationBgr(Mat srcImage) {
 		Mat result = srcImage.clone();
 
 		calibrateBgrChannel(srcImage, result, 0);
@@ -71,7 +71,7 @@ public class ColorChecker {
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
-				List<double[]> sample = getSampleColors(this.image, row, col, false);
+				List<double[]> sample = getSampleColors(this.checkerImage, row, col, false);
 				train.addAll(sample);
 				for (Integer i = 0; i < sample.size(); ++i) {
 					Scalar refColor = BGR_REFERENCE_COLORS.get(row).get(col);
@@ -104,7 +104,7 @@ public class ColorChecker {
 
 	public Mat brightnessCalibration(Mat srcImage) {
 		Mat cieImage = bgrToCie(srcImage);
-		Mat referenceImage = bgrToCie(this.image);
+		Mat referenceImage = bgrToCie(this.checkerImage);
 		List<double[]> train = new ArrayList<double[]>();
 		List<Double> answers = new ArrayList<Double>();
 
@@ -142,12 +142,12 @@ public class ColorChecker {
 		return cieToBgr(cieImage);
 	}
 
-	public CellColors getCellColors(Mat image) {
+	public CellColors getCellColors(Mat checkerImage) {
 		CellColors cellColors = new CellColors();
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
-				List<double[]> actualColors = getSampleColors(this.image, row, col, false);
+				List<double[]> actualColors = getSampleColors(checkerImage, row, col, false);
 				Color referenceColor = Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col));
 				for (double[] c : actualColors) {
 					cellColors.addColor(Color.ofBGR(c), referenceColor);
@@ -199,7 +199,7 @@ public class ColorChecker {
 		return result;
 	}
 
-	private List<double[]> getSampleColors(Mat image, Integer row,
+	private List<double[]> getSampleColors(Mat checkerImage, Integer row,
 			Integer col, boolean allPoints) {
 		Point center = centers.get(row).get(col);
 		List<Point> points = getSurroundingPoints(center);
@@ -213,13 +213,13 @@ public class ColorChecker {
 			int maxY = (int) points.get(8).y;
 			for (int y = minY; y <= maxY; ++y) {
 				for (int x = minX; x <= maxX; ++x) {
-					double[] color = image.get(y, x);
+					double[] color = checkerImage.get(y, x);
 					colors.add(color);
 				}
 			}
 		} else {
 			for (Point p : points) {
-				double[] color = image.get((int)p.y, (int)p.x);
+				double[] color = checkerImage.get((int)p.y, (int)p.x);
 				colors.add(color);
 			}
 		}

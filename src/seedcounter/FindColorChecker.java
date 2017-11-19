@@ -23,6 +23,9 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
+import seedcounter.colormetric.EuclideanRGB;
+import seedcounter.colormetric.HumanFriendlyRGB;
+
 
 public class FindColorChecker {
 	static final List<String> INPUT_FILES = Arrays.asList("7259_2.jpg", "8798_4.jpg", "8861_1.jpg");
@@ -183,13 +186,17 @@ public class FindColorChecker {
 			Quad quad = f.findColorChecker(image);
 			SheetDetect sheet = new SheetDetect(image.rows(), image.cols());
 			Mat extractedColorChecker = sheet.getTransformedField(image, quad);
-			f.fillColorChecker(image, quad);
-
-			Highgui.imwrite(inputFile.replaceFirst("[.][^.]+$", ".output.png"), image);
 
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
-			Mat calibrated = checker.brightnessCalibrationBgr(image);
-			Highgui.imwrite(inputFile.replaceFirst("[.][^.]+$", ".calibrated.png"), calibrated);
+			System.out.println("EuclideanRGB: " +
+					checker.getCellColors(extractedColorChecker).calculateMetric(EuclideanRGB.create()));
+			System.out.println("HumanFriendlyRGB: " +
+					checker.getCellColors(extractedColorChecker).calculateMetric(HumanFriendlyRGB.create()));
+			Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker);
+			System.out.println("EuclideanRGB: " +
+					checker.getCellColors(calibratedChecker).calculateMetric(EuclideanRGB.create()));
+			System.out.println("HumanFriendlyRGB: " +
+					checker.getCellColors(calibratedChecker).calculateMetric(HumanFriendlyRGB.create()));
 		}
 	}
 }
