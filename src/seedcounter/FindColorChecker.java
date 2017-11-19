@@ -23,6 +23,7 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
+import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.colormetric.HumanFriendlyRGB;
 
@@ -192,11 +193,15 @@ public class FindColorChecker {
 					checker.getCellColors(extractedColorChecker).calculateMetric(EuclideanRGB.create()));
 			System.out.println("HumanFriendlyRGB: " +
 					checker.getCellColors(extractedColorChecker).calculateMetric(HumanFriendlyRGB.create()));
+			System.out.println("EuclideanLab: " +
+					checker.getCellColors(extractedColorChecker).calculateMetric(EuclideanLab.create()));
 			Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker);
 			System.out.println("EuclideanRGB: " +
 					checker.getCellColors(calibratedChecker).calculateMetric(EuclideanRGB.create()));
 			System.out.println("HumanFriendlyRGB: " +
 					checker.getCellColors(calibratedChecker).calculateMetric(HumanFriendlyRGB.create()));
+			System.out.println("EuclideanLab: " +
+					checker.getCellColors(calibratedChecker).calculateMetric(EuclideanLab.create()));
 		}
 	}
 }
