@@ -13,7 +13,7 @@ public class Color {
 	private final double a;
 	private final double b;
 
-	private Color(double red, double green, double blue) {
+	public Color(double red, double green, double blue) {
 		this.red = red;
 		this.green = green;
 		this.blue = blue;
@@ -50,6 +50,10 @@ public class Color {
 
 	public double b() {
 		return this.b;
+	}
+
+	public double[] toBGR() {
+		return new Scalar(this.blue, this.green, this.red).val;
 	}
 
 	public static Color ofBGR(Scalar color) {

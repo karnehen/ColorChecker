@@ -23,13 +23,18 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
+import seedcounter.colormetric.ColorMetric;
 import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.colormetric.HumanFriendlyRGB;
+import seedcounter.regression.RegressionModel;
+import seedcounter.regression.SecondOrderRGB;
+import seedcounter.regression.SimpleRGB;
+import seedcounter.regression.ThirdOrderRGB;
 
 
 public class FindColorChecker {
-	static final List<String> INPUT_FILES = Arrays.asList("7259_2.jpg", "8798_4.jpg", "8861_1.jpg");
+	static final List<String> INPUT_FILES = Arrays.asList("IMG_8371.jpg", "IMG_8372.jpg", "IMG_8228.jpg");
 	static final String REFERENCE_FILE = "reference.png";
 
 	private Mat referenceImage;
@@ -189,19 +194,33 @@ public class FindColorChecker {
 			Mat extractedColorChecker = sheet.getTransformedField(image, quad);
 
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
-			System.out.println("EuclideanRGB: " +
-					checker.getCellColors(extractedColorChecker).calculateMetric(EuclideanRGB.create()));
-			System.out.println("HumanFriendlyRGB: " +
-					checker.getCellColors(extractedColorChecker).calculateMetric(HumanFriendlyRGB.create()));
-			System.out.println("EuclideanLab: " +
-					checker.getCellColors(extractedColorChecker).calculateMetric(EuclideanLab.create()));
-			Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker);
-			System.out.println("EuclideanRGB: " +
-					checker.getCellColors(calibratedChecker).calculateMetric(EuclideanRGB.create()));
-			System.out.println("HumanFriendlyRGB: " +
-					checker.getCellColors(calibratedChecker).calculateMetric(HumanFriendlyRGB.create()));
-			System.out.println("EuclideanLab: " +
-					checker.getCellColors(calibratedChecker).calculateMetric(EuclideanLab.create()));
+			List<RegressionModel> models = new ArrayList<RegressionModel>();
+			models.add(new SimpleRGB());
+			models.add(new SecondOrderRGB());
+			models.add(new ThirdOrderRGB());
+			List<ColorMetric> metrics = new ArrayList<ColorMetric>();
+			metrics.add(EuclideanRGB.create());
+			metrics.add(HumanFriendlyRGB.create());
+			metrics.add(EuclideanLab.create());
+			for (RegressionModel m : models) {
+				String name = m.getClass().getName();
+				System.out.println(name);
+				for (ColorMetric cm : metrics) {
+					String metricName = cm.getClass().getName();
+					System.out.println(metricName + ": " +
+							checker.getCellColors(extractedColorChecker).calculateMetric(cm));
+				}
+				Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, m);
+				for (ColorMetric cm : metrics) {
+					String metricName = cm.getClass().getName();
+					System.out.println(metricName + ": " +
+							checker.getCellColors(calibratedChecker).calculateMetric(cm));
+				}
+
+				Mat calibrated = checker.calibrationBgr(image, m);
+				f.fillColorChecker(calibrated, quad);
+				Highgui.imwrite(inputFile.replaceAll("\\..+", "." + name + ".png"), calibrated);
+			}
 		}
 	}
 }

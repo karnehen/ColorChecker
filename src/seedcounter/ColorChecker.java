@@ -4,13 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
-import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
+import seedcounter.regression.RegressionModel;
 
 public class ColorChecker {
 	public final static List<List<Scalar>> BGR_REFERENCE_COLORS = Arrays.asList(
@@ -55,91 +52,35 @@ public class ColorChecker {
 		}
 	}
 
-	public Mat calibrationBgr(Mat srcImage) {
+	public Mat calibrationBgr(Mat srcImage, RegressionModel model) {
 		Mat result = srcImage.clone();
-
-		calibrateBgrChannel(srcImage, result, 0);
-		calibrateBgrChannel(srcImage, result, 1);
-		calibrateBgrChannel(srcImage, result, 2);
-
-		return result;
-	}
-
-	private void calibrateBgrChannel(Mat srcImage, Mat dscImage, int channel) {
-		List<double[]> train = new ArrayList<double[]>();
-		List<Double> answers = new ArrayList<Double>();
+		List<Color> train = new ArrayList<Color>();
+		List<Color> answers = new ArrayList<Color>();
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
 				List<double[]> sample = getSampleColors(this.checkerImage, row, col, false);
-				train.addAll(sample);
 				for (Integer i = 0; i < sample.size(); ++i) {
-					Scalar refColor = BGR_REFERENCE_COLORS.get(row).get(col);
-					answers.add(refColor.val[channel]);
+					train.add(Color.ofBGR(sample.get(i)));
+					answers.add(Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col)));
 				}
 			}
 		}
 
-		double[][] trainArray = new double[answers.size()][3];
-		double[] answersArray = new double[answers.size()];
-		for (int i = 0; i < answers.size(); ++i) {
-			answersArray[i] = answers.get(i);
-			trainArray[i] = train.get(i);
-		}
-
-		OLSMultipleLinearRegression regressor = new OLSMultipleLinearRegression();
-		regressor.setNoIntercept(false);
-		regressor.newSampleData(answersArray, trainArray);
-		double[] beta = regressor.estimateRegressionParameters();
+		model.train(train, answers);
 
 		for (Integer row = 0; row < srcImage.rows(); ++row) {
 			for (Integer col = 0; col < srcImage.cols(); ++col) {
 				double[] srcColor = srcImage.get(row, col);
-				double[] dscColor = dscImage.get(row, col);
-				dscColor[channel] = beta[0] + beta[1] * srcColor[0] + beta[2] * srcColor[1] + beta[3] * srcColor[2];
-				dscImage.put(row, col, dscColor);
-			}
-		}
-	}
-
-	public Mat brightnessCalibration(Mat srcImage) {
-		Mat cieImage = bgrToCie(srcImage);
-		Mat referenceImage = bgrToCie(this.checkerImage);
-		List<double[]> train = new ArrayList<double[]>();
-		List<Double> answers = new ArrayList<Double>();
-
-		for (Integer row = 0; row < 6; ++row) {
-			Integer col = 3;
-			List<double[]> sample = getSampleColors(referenceImage, row, col, false);
-			train.addAll(sample);
-			for (Integer i = 0; i < sample.size(); ++i) {
-				Scalar refColor = REFERENCE_COLORS.get(row).get(col);
-				answers.add(refColor.val[2]);
+				double[] calibratedColor = model.calibrate(Color.ofBGR(srcColor)).toBGR();
+				srcColor[0] = calibratedColor[0];
+				srcColor[1] = calibratedColor[1];
+				srcColor[2] = calibratedColor[2];
+				result.put(row, col, srcColor);
 			}
 		}
 
-		double[][] trainArray = new double[answers.size()][3];
-		double[] answersArray = new double[answers.size()];
-		for (int i = 0; i < answers.size(); ++i) {
-			answersArray[i] = answers.get(i);
-			trainArray[i] = train.get(i);
-		}
-
-		OLSMultipleLinearRegression regressor = new OLSMultipleLinearRegression();
-		regressor.setNoIntercept(true);
-		regressor.newSampleData(answersArray, trainArray);
-		System.out.println(regressor.isNoIntercept());
-		double[] beta = regressor.estimateRegressionParameters();
-
-		for (Integer row = 0; row < cieImage.rows(); ++row) {
-			for (Integer col = 0; col < cieImage.cols(); ++col) {
-				double[] color = cieImage.get(row, col);
-				color[2] = beta[0] * color[0] + beta[1] * color[1] + beta[2] * color[2];
-				cieImage.put(row, col, color);
-			}
-		}
-
-		return cieToBgr(cieImage);
+		return result;
 	}
 
 	public CellColors getCellColors(Mat checkerImage) {
@@ -147,7 +88,7 @@ public class ColorChecker {
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
-				List<double[]> actualColors = getSampleColors(checkerImage, row, col, false);
+				List<double[]> actualColors = getSampleColors(checkerImage, row, col, true);
 				Color referenceColor = Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col));
 				for (double[] c : actualColors) {
 					cellColors.addColor(Color.ofBGR(c), referenceColor);
@@ -156,47 +97,6 @@ public class ColorChecker {
 		}
 
 		return cellColors;
-	}
-
-	private Mat bgrToCie(Mat srcImage) {
-		Mat cieImage = new Mat(srcImage.rows(), srcImage.cols(), CvType.CV_32FC3);
-		Imgproc.cvtColor(srcImage, cieImage, Imgproc.COLOR_BGR2XYZ);
-		Mat result = new Mat(srcImage.rows(), srcImage.cols(), CvType.CV_64FC3);
-
-
-		for (Integer j = 0; j < cieImage.rows(); ++j) {
-			for (Integer i = 0; i < cieImage.cols(); ++i) {
-				double[] oldColor = cieImage.get(j, i);
-				Double X = oldColor[0];
-				Double Y = oldColor[1];
-				Double Z = oldColor[2];
-				double[] newColor = {X / (X + Y + Z), Y / (X + Y + Z), Y * 100.0 / 255.0};
-
-				result.put(j, i, newColor);
-			}
-		}
-
-		return result;
-	}
-
-	private Mat cieToBgr(Mat srcImage) {
-		Mat result = new Mat(srcImage.rows(), srcImage.cols(), CvType.CV_32FC3);
-
-		for (Integer j = 0; j < srcImage.rows(); ++j) {
-			for (Integer i = 0; i < srcImage.cols(); ++i) {
-				double[] oldColor = srcImage.get(j, i);
-				Double x = oldColor[0];
-				Double y = oldColor[1];
-				Double Y = oldColor[2] * 255.0 / 100.0;
-				double[] newColor = {x * Y / y, Y, (1.0 - x - y) * Y / y};
-
-				result.put(j, i, newColor);
-			}
-		}
-
-		Imgproc.cvtColor(result, result, Imgproc.COLOR_XYZ2BGR);
-
-		return result;
 	}
 
 	private List<double[]> getSampleColors(Mat checkerImage, Integer row,
