@@ -2,7 +2,9 @@ package seedcounter;
 
 
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.imgproc.Imgproc;
 
 /**
  * Quad.
@@ -111,4 +113,25 @@ public class Quad {
 		
 		return new Quad(newTl, newTr, newBr, newBl);
 	}
+
+    public Mat getTransformedField(Mat image) {    	
+    	// Define the destination image
+    	Mat transformed = new Mat(image.rows(), image.cols(), image.type());
+    	
+    	// Corners of the destination image
+    	Point[] quad_pts = new Point[4];
+    	quad_pts[0] = new Point(0, 0);
+    	quad_pts[1] = new Point(transformed.cols(), 0);
+    	quad_pts[2] = new Point(transformed.cols(), transformed.rows());
+    	quad_pts[3] = new Point(0, transformed.rows());
+
+    	// Get transformation matrix
+    	Mat transmtx = Imgproc.getPerspectiveTransform(new MatOfPoint2f(getPoints()),
+    			new MatOfPoint2f(quad_pts));
+
+    	// Apply perspective transformation
+    	Imgproc.warpPerspective(image, transformed, transmtx, transformed.size());
+    	
+    	return transformed;
+    }
 }

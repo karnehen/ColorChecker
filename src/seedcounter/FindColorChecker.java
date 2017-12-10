@@ -233,10 +233,9 @@ public class FindColorChecker {
 					Highgui.CV_LOAD_IMAGE_ANYCOLOR | Highgui.CV_LOAD_IMAGE_ANYDEPTH);
 
 			Quad quad = f.findColorChecker(image);
-			SheetDetect sheet = new SheetDetect(image.rows(), image.cols());
-			Mat extractedColorChecker = sheet.getTransformedField(image, quad);
+			Mat extractedColorChecker = quad.getTransformedField(image);
 			Highgui.imwrite(inputDirectory + "/result/" + "extracted_" + inputFile.getName(), extractedColorChecker);
-
+			System.out.println("extracted");
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
 			List<RegressionModel> models = new ArrayList<RegressionModel>();
 			models.add(new SimpleRGB());
@@ -249,7 +248,8 @@ public class FindColorChecker {
 			for (RegressionModel m : models) {
 				String name = m.getClass().getName();
 				log.println(name);
-				for (ColorMetric cm : metrics) {
+				System.out.println(name);
+/*				for (ColorMetric cm : metrics) {
 					String metricName = cm.getClass().getName();
 					log.println(metricName + ": " +
 							checker.getCellColors(extractedColorChecker).calculateMetric(cm));
@@ -259,12 +259,10 @@ public class FindColorChecker {
 					String metricName = cm.getClass().getName();
 					log.println(metricName + ": " +
 							checker.getCellColors(calibratedChecker).calculateMetric(cm));
-				}
-
+				}*/
 				Mat calibrated = checker.calibrationBgr(image, m);
 				f.fillColorChecker(calibrated, quad);
 				Highgui.imwrite(inputDirectory + "/result/" + name + "_" + inputFile.getName(), calibrated);
-
 				Mat mask = f.binarizeSeed(calibrated);
 				Highgui.imwrite(inputDirectory + "/result/" + name + "_mask_" + inputFile.getName(), mask);
 				Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(10, 10));

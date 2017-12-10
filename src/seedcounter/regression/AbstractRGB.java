@@ -1,5 +1,6 @@
 package seedcounter.regression;
 
+import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,16 @@ public abstract class AbstractRGB implements RegressionModel {
 			getEstimate(features, greenBeta), getEstimate(features, blueBeta));
 	}
 
+	/*
+	 * accepts array slice with color in BGR format
+	 */
+	@Override
+	public void calibrate(DoubleBuffer color) {
+		double[] features = bgrToFeatures(color);
+		color.put(new double[] {getEstimate(features, blueBeta),
+			getEstimate(features, greenBeta), getEstimate(features, redBeta)});
+	}
+
 	private double[] trainChannel(List<Color> trainSet, List<Double> answers) {
 		double[][] trainArray = new double[answers.size()][3];
 		double[] answersArray = new double[answers.size()];
@@ -52,7 +63,12 @@ public abstract class AbstractRGB implements RegressionModel {
 		return regressor.estimateRegressionParameters();
 	}
 
-	abstract protected double[] bgrToFeatures(double[] bgr);
+	abstract protected double[] bgrToFeatures(DoubleBuffer bgr);
+
+	// TODO: remove
+	private double[] bgrToFeatures(double[] bgr) {
+		return bgrToFeatures(DoubleBuffer.wrap(bgr));
+	}
 
 	private double getEstimate(double[] features, double[] beta) {
 		double answer = beta[0];

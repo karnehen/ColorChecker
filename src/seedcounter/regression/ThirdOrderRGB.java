@@ -1,17 +1,22 @@
 package seedcounter.regression;
 
+import java.nio.DoubleBuffer;
+
 public class ThirdOrderRGB extends AbstractRGB implements RegressionModel {
 	@Override
-	protected double[] bgrToFeatures(double[] bgr) {
+	protected double[] bgrToFeatures(DoubleBuffer bgr) {
+		double blue = bgr.get(bgr.position());
+		double green = bgr.get(bgr.position() + 1);
+		double red = bgr.get(bgr.position() + 2);
 		return new double[] {
-			bgr[0], bgr[1], bgr[2],
-			bgr[0] * bgr[0], bgr[0] * bgr[1], bgr[0] * bgr[2],
-			bgr[1] * bgr[1], bgr[1] * bgr[2], bgr[2] * bgr[2],
-			bgr[0] * bgr[0] * bgr[0], bgr[0] * bgr[0] * bgr[1],
-			bgr[0] * bgr[0] * bgr[2], bgr[0] * bgr[1] * bgr[1],
-			bgr[0] * bgr[1] * bgr[2], bgr[0] * bgr[2] * bgr[2],
-			bgr[1] * bgr[1] * bgr[1], bgr[1] * bgr[1] * bgr[2],
-			bgr[1] * bgr[2] * bgr[2], bgr[2] * bgr[2] * bgr[2],
+			blue, green, red,
+			blue * blue, blue * green, blue * red,
+			green * green, green * red, red * red,
+			blue * blue * blue, blue * blue * green,
+			blue * blue * red, blue * green * green,
+			blue * green * red, blue * red * red,
+			green * green * green, green * green * red,
+			green * red * red, red * red * red,
 		};
 	}
 }

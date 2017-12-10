@@ -1,9 +1,11 @@
 package seedcounter;
 
+import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -69,16 +71,17 @@ public class ColorChecker {
 
 		model.train(train, answers);
 
-		for (Integer row = 0; row < srcImage.rows(); ++row) {
-			for (Integer col = 0; col < srcImage.cols(); ++col) {
-				double[] srcColor = srcImage.get(row, col);
-				double[] calibratedColor = model.calibrate(Color.ofBGR(srcColor)).toBGR();
-				srcColor[0] = calibratedColor[0];
-				srcColor[1] = calibratedColor[1];
-				srcColor[2] = calibratedColor[2];
-				result.put(row, col, srcColor);
-			}
+		result.convertTo(result, CvType.CV_64FC3);
+		int channels = result.channels();
+		int size = (int) result.total() * channels;
+		double[] temp = new double[size];
+		result.get(0, 0, temp);
+		for (int i = 0; i + channels < size; i += channels) {
+			DoubleBuffer srcColor = DoubleBuffer.wrap(temp, i, channels);
+			model.calibrate(srcColor);
 		}
+		result.put(0, 0, temp);
+		result.convertTo(result, srcImage.type());
 
 		return result;
 	}
