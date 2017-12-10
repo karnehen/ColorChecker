@@ -14,6 +14,8 @@ import javax.activation.MimetypesFileTypeMap;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Range;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -45,7 +47,9 @@ public class Main {
 					DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f)
 		);
 
-	private static void printMap(PrintWriter writer, Map<String, String> map, boolean header) {
+	private static void printMap(PrintWriter writer, Map<String, String> map) {
+		boolean header = map.containsKey("header");
+		map.remove("header");
 		StringBuilder builder = new StringBuilder();
 		if (header) {
 			for (String key : map.keySet()) {
@@ -90,6 +94,77 @@ public class Main {
 		return new Mat(filtered, rows, cols);
 	}
 
+	private static List<MatOfPoint> getContours(Mat image) {
+		Mat gray = new Mat();
+		Imgproc.cvtColor(image, gray, Imgproc.COLOR_RGB2GRAY);
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Mat hierarchy = new Mat();
+		Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+
+		System.out.println(contours.size());
+		return contours;
+	}
+
+	private static void printSingleSeed(MatOfPoint contour, Mat image, Mat seedBuffer,
+			PrintWriter writer, Map<String, String> data) {
+		data.put("area", String.valueOf(Imgproc.contourArea(contour)));
+		Imgproc.drawContours(seedBuffer, Arrays.asList(contour), 0,
+				new Scalar(255.0), Core.FILLED);
+
+		int minX = image.cols() - 1;
+		int maxX = 0;
+		int minY = image.rows() - 1;
+		int maxY = 0;
+		
+		for (Point point : contour.toList()) {
+			if (point.x < minX) {
+				minX = (int) point.x;
+			}
+			if (point.x > maxX) {
+				maxX = (int) point.x;
+			}
+			if (point.y < minY) {
+				minY = (int) point.y;
+			}
+			if (point.y > maxY) {
+				maxY = (int) point.y;
+			}
+		}
+
+		int counter = 0;
+
+		for (int y = minY; y <= maxY; ++y) {
+			for (int x = minX; x <= maxX; ++x) {
+				if (seedBuffer.get(y, x)[0] > 0.0) {
+					double[] color = image.get(y, x);
+					if (color[0] + color[1] + color[2] > 0.0) {
+						if (counter % 10 == 0) {
+							data.put("x", String.valueOf(x));
+							data.put("y", String.valueOf(y));
+							data.put("blue", String.valueOf(color[0]));
+							data.put("green", String.valueOf(color[1]));
+							data.put("red", String.valueOf(color[2]));
+							printMap(writer, data);
+						}
+						counter += 1;
+					}
+				}
+			}
+		}
+		Imgproc.drawContours(seedBuffer, Arrays.asList(contour), 0, new Scalar(0.0));
+	}
+
+	private static void printSeeds(Mat image, PrintWriter writer,
+			Map<String, String> data) {
+		List<MatOfPoint> contours = getContours(image);
+		Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
+
+		for (int i = 0; i < contours.size(); ++i) {
+			data.put("seed_number", String.valueOf(i));
+			printSingleSeed(contours.get(i), image, seedBuffer, writer, data);
+		}
+	}
+
 	public static void main(String[] args) throws FileNotFoundException {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODELS.get(1));
@@ -110,11 +185,11 @@ public class Main {
 		PrintWriter calibrationLog = new PrintWriter(
 				inputDirectory.getAbsolutePath() + "/calibration_log.txt");
 		Map<String, String> calibrationData = new HashMap<String, String>();
-		boolean calibrationHeader = true;
+		calibrationData.put("header", "1");
 		PrintWriter seedLog = new PrintWriter(
 				inputDirectory.getAbsolutePath() + "/seed_log.txt");
 		Map<String, String> seedData = new HashMap<String, String>();
-		boolean seedHeader = true;
+		seedData.put("header", "1");
 
 		for (File inputFile : inputDirectory.listFiles()) {
 			String mimetype = new MimetypesFileTypeMap().getContentType(inputFile);
@@ -122,6 +197,7 @@ public class Main {
 			if (!type.equals("image")) {
 				continue;
 			}
+			System.out.println(inputFile.getName());
 			calibrationData.put("file", inputFile.getName());
 			seedData.put("file", inputFile.getName());
 
@@ -141,6 +217,7 @@ public class Main {
 			}
 			for (RegressionModel m : models) {
 				String name = m.getClass().getSimpleName();
+				System.out.println(name);
 				calibrationData.put("model", name);
 				seedData.put("model", name);
 				Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, m);
@@ -150,8 +227,7 @@ public class Main {
 							String.valueOf(checker.getCellColors(calibratedChecker).
 									calculateMetric(cm)));
 				}
-				printMap(calibrationLog, calibrationData, calibrationHeader);
-				calibrationHeader = false;
+				printMap(calibrationLog, calibrationData);
 				Mat calibrated = checker.calibrationBgr(image, m);
 				f.fillColorChecker(calibrated, quad);
 				Highgui.imwrite(inputDirectory + "/result/" + name +
@@ -163,20 +239,8 @@ public class Main {
 				Mat filtered = filterByMask(calibrated, mask);
 				Highgui.imwrite(inputDirectory + "/result/" + name +
 						"_filtered_" + inputFile.getName(), filtered);
-				for (int r = 0; r < filtered.rows(); ++r) {
-					for (int c = 0; c < filtered.cols(); ++c) {
-						double[] color = filtered.get(r, c);
-						if (color[0] + color[1] + color[2] > 0.0) {
-							seedData.put("blue", String.valueOf(color[0]));
-							seedData.put("green", String.valueOf(color[1]));
-							seedData.put("red", String.valueOf(color[2]));
-							printMap(seedLog, seedData, seedHeader);
-							seedHeader = false;
-						}
-					}
-				}
+				printSeeds(filtered, seedLog, seedData);
 			}
-			break;
 		}
 		calibrationLog.close();
 		seedLog.close();
