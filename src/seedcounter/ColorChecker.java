@@ -37,6 +37,9 @@ public class ColorChecker {
 	private Integer xScale;
 	private Integer yScale;
 
+	private static final Double REAL_WIDTH = 64.0; // millimeters
+	private static final Double REAL_HEIGHT = 108.0; // millimeters
+
 	public ColorChecker(Mat image) {
 		this.checkerImage = image.clone();
 		Integer width = image.width();
@@ -52,6 +55,10 @@ public class ColorChecker {
 			}
 			this.centers.add(points);
 		}
+	}
+
+	public Double pixelArea(Quad quad) {
+		return REAL_WIDTH * REAL_HEIGHT / quad.getArea();
 	}
 
 	public Mat calibrationBgr(Mat srcImage, RegressionModel model) {

@@ -209,6 +209,7 @@ public class Main {
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			Highgui.imwrite(inputDirectory + "/result/" + "extracted_" + inputFile.getName(), extractedColorChecker);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
+			calibrationData.put("scale", checker.pixelArea(quad).toString());
 			for (ColorMetric cm : metrics) {
 				String metricName = cm.getClass().getSimpleName();
 				calibrationData.put("source:" + metricName,

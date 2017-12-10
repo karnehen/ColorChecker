@@ -75,6 +75,15 @@ public class Quad {
 		double maxY = Math.max(Math.max(tl.y, tr.y), Math.max(bl.y, br.y));
 		return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
 	}
+
+	public double getArea() {
+		double dx1 = tr.x - tl.x;
+		double dy1 = tr.y - tl.y;
+		double dx2 = bl.x - tl.x;
+		double dy2 = bl.y - tl.y;
+
+		return Math.abs(dx1 * dy2 - dy1 * dx2);
+	}
 	
 	public Point tl() {
 		return tl;
