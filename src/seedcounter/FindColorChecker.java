@@ -44,15 +44,37 @@ import seedcounter.regression.ThirdOrderRGB;
 
 
 public class FindColorChecker {
-	static final List<String> INPUT_FILES = Arrays.asList("P_20171126_170309.jpg", "P_20171126_174325.jpg");
-	static final String INPUT_DIRECTORY = "../../photos/ASUS_Z00ED";
-	static final String REFERENCE_FILE = "reference.png";
+	private static final String INPUT_DIRECTORY = "../../photos/ASUS_Z00ED";
+	private static final String REFERENCE_FILE = "reference.png";
+	public static final List<MatchingModel> MATCHING_MODELS = Arrays.asList(
+		new MatchingModel(FeatureDetector.SURF, DescriptorExtractor.SURF,
+				DescriptorMatcher.FLANNBASED, 0.7f),
+		new MatchingModel(FeatureDetector.SIFT, DescriptorExtractor.SIFT,
+				DescriptorMatcher.FLANNBASED, 0.7f),
+		new MatchingModel(FeatureDetector.ORB, DescriptorExtractor.ORB,
+				DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f)
+	);
 
 	private Mat referenceImage;
+	private MatchingModel matchingModel;
 	private MatOfKeyPoint referenceKeypoints;
 	private MatOfKeyPoint referenceDescriptors;
 	private FeatureDetector detector;
 	private DescriptorExtractor extractor;
+
+	public FindColorChecker(String referenceFile, MatchingModel matchingModel) {
+		referenceImage = Highgui.imread(referenceFile,
+				Highgui.CV_LOAD_IMAGE_ANYCOLOR | Highgui.CV_LOAD_IMAGE_ANYDEPTH);
+		this.matchingModel = matchingModel;
+
+		referenceKeypoints = new MatOfKeyPoint();
+		detector = FeatureDetector.create(this.matchingModel.getDetector());
+		detector.detect(referenceImage, referenceKeypoints);
+
+		referenceDescriptors = new MatOfKeyPoint();
+		extractor = DescriptorExtractor.create(this.matchingModel.getExtractor());
+		extractor.compute(referenceImage, referenceKeypoints, referenceDescriptors);
+	}
 
 	public Quad findColorChecker(Mat image) {
 		MatOfKeyPoint keypoints = new MatOfKeyPoint();
@@ -70,18 +92,18 @@ public class FindColorChecker {
 
 	private LinkedList<DMatch> getGoodMatches(MatOfKeyPoint descriptors) {
 		List<MatOfDMatch> matches = new LinkedList<MatOfDMatch>();
-		DescriptorMatcher descriptorMatcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
+		DescriptorMatcher descriptorMatcher = DescriptorMatcher.create(
+				matchingModel.getMatcher());
 		descriptorMatcher.knnMatch(referenceDescriptors, descriptors, matches, 2);
 
 		LinkedList<DMatch> goodMatches = new LinkedList<DMatch>();
-		float nndrRatio = 0.7f;
 
 		for (MatOfDMatch matofDMatch : matches) {
 			DMatch[] dmatcharray = matofDMatch.toArray();
 			DMatch m1 = dmatcharray[0];
 			DMatch m2 = dmatcharray[1];
 
-			if (m1.distance <= m2.distance * nndrRatio) {
+			if (m1.distance <= m2.distance * matchingModel.getThreshold()) {
 				goodMatches.addLast(m1);
 			}
 		}
@@ -130,19 +152,6 @@ public class FindColorChecker {
 
 		points.fromArray(quad.getPoints());
 		Core.fillConvexPoly(image, points, getBackgroundColor(image, quad));
-	}
-
-	public void initReference(String referenceFile) {
-		referenceImage = Highgui.imread(referenceFile,
-				Highgui.CV_LOAD_IMAGE_ANYCOLOR | Highgui.CV_LOAD_IMAGE_ANYDEPTH);
-
-		referenceKeypoints = new MatOfKeyPoint();
-		detector = FeatureDetector.create(FeatureDetector.SIFT);
-		detector.detect(referenceImage, referenceKeypoints);
-
-		referenceDescriptors = new MatOfKeyPoint();
-		extractor = DescriptorExtractor.create(DescriptorExtractor.SIFT);
-		extractor.compute(referenceImage, referenceKeypoints, referenceDescriptors);
 	}
 
 	private Scalar getBackgroundColor(Mat image, Quad quad) {
@@ -205,17 +214,13 @@ public class FindColorChecker {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-		FindColorChecker f = new FindColorChecker();
-		f.initReference(REFERENCE_FILE);
+		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODELS.get(1));
 
 		File inputDirectory = new File(INPUT_DIRECTORY);
 		PrintWriter log = new PrintWriter(inputDirectory.getAbsolutePath() + "/log.txt");
 		new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
 
 		for (File inputFile : inputDirectory.listFiles()) {
-			if (!INPUT_FILES.contains(inputFile.getName())) {
-				continue;
-			}
 			String mimetype = new MimetypesFileTypeMap().getContentType(inputFile);
 			String type = mimetype.split("/")[0];
 			if (!type.equals("image")) {
