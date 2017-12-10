@@ -104,6 +104,7 @@ public class ColorChecker {
 
 	private List<double[]> getSampleColors(Mat checkerImage, Integer row,
 			Integer col, boolean allPoints) {
+		final int STEP = 10;
 		Point center = centers.get(row).get(col);
 		List<Point> points = getSurroundingPoints(center);
 
@@ -114,8 +115,8 @@ public class ColorChecker {
 			int minY = (int) points.get(0).y;
 			int maxX = (int) points.get(8).x;
 			int maxY = (int) points.get(8).y;
-			for (int y = minY; y <= maxY; ++y) {
-				for (int x = minX; x <= maxX; ++x) {
+			for (int y = minY; y <= maxY; y += STEP) {
+				for (int x = minX; x <= maxX; x += STEP) {
 					double[] color = checkerImage.get(y, x);
 					colors.add(color);
 				}
