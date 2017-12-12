@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import javafx.util.Pair;
 
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
@@ -23,7 +22,6 @@ import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
-import org.opencv.imgproc.Imgproc;
 
 
 public class FindColorChecker {
@@ -168,26 +166,5 @@ public class FindColorChecker {
 		}
 
 		return new Scalar(meanBlue, meanGreen, meanRed);
-	}
-
-	public Mat whiteThreshold(Mat image) {
-		Mat result = image.clone();
-		Imgproc.cvtColor(result, result, Imgproc.COLOR_BGR2GRAY);
-		Imgproc.threshold(result, result, 200.0, 255.0, Imgproc.THRESH_BINARY_INV);
-
-		return result;
-	}
-
-	public Mat binarizeSeed(Mat image) {
-		List<Pair<Scalar, Scalar>> targetsAndRanges = new LinkedList<Pair<Scalar, Scalar>>(); 
-		Scalar target1 = new Scalar(4, 97, 108); // темный цвет зерна в HSV
-		Scalar range1 = new Scalar(50, 100, 80); // диапазон для каждого HSV канала
-		targetsAndRanges.add(new Pair<Scalar, Scalar>(target1, range1));
-					
-		Scalar target2 = new Scalar(17, 67, 232); // светлый цвет зерна в HSV
-		Scalar range2 = new Scalar(50, 50, 50); // диапазон для каждого HSV канала
-		targetsAndRanges.add(new Pair<Scalar, Scalar>(target2, range2));
-		HSVBinarization hsv = new HSVBinarization(targetsAndRanges);
-		return hsv.apply(image);
 	}
 }
