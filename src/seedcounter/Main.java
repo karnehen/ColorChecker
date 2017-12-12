@@ -36,7 +36,7 @@ import seedcounter.regression.SimpleRGB;
 import seedcounter.regression.ThirdOrderRGB;
 
 public class Main {
-	private static final String INPUT_DIRECTORY = "../../photos/ASUS_Z00ED";
+	private static final String INPUT_DIRECTORY = "../../photos/SPH-L900";
 	private static final String REFERENCE_FILE = "reference.png";
 	private static final List<MatchingModel> MATCHING_MODELS = Arrays.asList(
 			new MatchingModel(FeatureDetector.SURF, DescriptorExtractor.SURF,
@@ -75,6 +75,7 @@ public class Main {
 		kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10, 10));
 		Imgproc.morphologyEx(whiteMask, whiteMask, Imgproc.MORPH_CLOSE, kernel);
 		Core.bitwise_and(mask, whiteMask, mask);
+		kernel.release();
 
 		return mask;
 	}
@@ -89,6 +90,9 @@ public class Main {
 		}
 		Mat filtered = new Mat(image.rows(), image.cols(), CvType.CV_8UC3);
 		Core.merge(channels, filtered);
+		for (Mat c : channels) {
+			c.release();
+		}
 		Range rows = new Range(filtered.rows() / 4, 3 * filtered.rows() / 4);
 		Range cols = new Range(filtered.cols() / 4, 3 * filtered.cols() / 4);
 		return new Mat(filtered, rows, cols);
@@ -101,13 +105,14 @@ public class Main {
         Mat hierarchy = new Mat();
 		Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
 
+		gray.release();
+		hierarchy.release();
 		System.out.println(contours.size());
 		return contours;
 	}
 
 	private static void printSingleSeed(MatOfPoint contour, Mat image, Mat seedBuffer,
 			PrintWriter writer, Map<String, String> data) {
-		data.put("area", String.valueOf(Imgproc.contourArea(contour)));
 		Imgproc.drawContours(seedBuffer, Arrays.asList(contour), 0,
 				new Scalar(255.0), Core.FILLED);
 
@@ -155,14 +160,22 @@ public class Main {
 	}
 
 	private static void printSeeds(Mat image, PrintWriter writer,
-			Map<String, String> data) {
+			Map<String, String> data, Double scale) {
 		List<MatOfPoint> contours = getContours(image);
 		Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
 
 		for (int i = 0; i < contours.size(); ++i) {
 			data.put("seed_number", String.valueOf(i));
-			printSingleSeed(contours.get(i), image, seedBuffer, writer, data);
+			MatOfPoint contour = contours.get(i);
+			Double area = scale * Imgproc.contourArea(contour);
+			if (area < 50.0) {
+				data.put("area", area.toString());
+				printSingleSeed(contours.get(i), image, seedBuffer, writer, data);
+			}
+			contour.release();
 		}
+
+		seedBuffer.release();
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
@@ -207,9 +220,11 @@ public class Main {
 
 			Quad quad = f.findColorChecker(image);
 			Mat extractedColorChecker = quad.getTransformedField(image);
-			Highgui.imwrite(inputDirectory + "/result/" + "extracted_" + inputFile.getName(), extractedColorChecker);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
-			calibrationData.put("scale", checker.pixelArea(quad).toString());
+			Highgui.imwrite(inputDirectory + "/result/" + "extracted_"
+					+ inputFile.getName(), checker.drawSamplePoints());
+			Double scale = checker.pixelArea(quad);
+			calibrationData.put("scale", scale.toString());
 			for (ColorMetric cm : metrics) {
 				String metricName = cm.getClass().getSimpleName();
 				calibrationData.put("source:" + metricName,
@@ -221,6 +236,7 @@ public class Main {
 				System.out.println(name);
 				calibrationData.put("model", name);
 				seedData.put("model", name);
+
 				Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, m);
 				for (ColorMetric cm : metrics) {
 					String metricName = cm.getClass().getSimpleName();
@@ -228,6 +244,8 @@ public class Main {
 							String.valueOf(checker.getCellColors(calibratedChecker).
 									calculateMetric(cm)));
 				}
+				calibratedChecker.release();
+
 				printMap(calibrationLog, calibrationData);
 				Mat calibrated = checker.calibrationBgr(image, m);
 				f.fillColorChecker(calibrated, quad);
@@ -238,10 +256,16 @@ public class Main {
 					mask = getMask(f, calibrated);
 				}
 				Mat filtered = filterByMask(calibrated, mask);
+				calibrated.release();
+			
 				Highgui.imwrite(inputDirectory + "/result/" + name +
 						"_filtered_" + inputFile.getName(), filtered);
-				printSeeds(filtered, seedLog, seedData);
+				printSeeds(filtered, seedLog, seedData, scale);
+				filtered.release();
 			}
+			image.release();
+			mask.release();
+			extractedColorChecker.release();
 		}
 		calibrationLog.close();
 		seedLog.close();

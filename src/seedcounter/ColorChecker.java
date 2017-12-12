@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.math3.linear.SingularMatrixException;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -30,8 +32,12 @@ public class ColorChecker {
 			Arrays.asList(new Scalar(0.4, 0.35, 10.1), new Scalar(0.506, 0.407, 30.1), new Scalar(0.187, 0.129, 6.1), new Scalar(0.31, 0.316, 90))
 	);
 
-	private final List<Double> xCenters = Arrays.asList(1.0 / 8.0, 3.0 / 8.0, 5.0 / 8.0, 7.0 / 8.0);
-	private final List<Double> yCenters = Arrays.asList(1.0 / 7.0, 2.0 / 7.0, 3.0 / 7.0, 4.0 / 7.0, 5.0 / 7.0, 6.0 / 7.0);
+	private final List<Double> xCenters = Arrays.asList(
+			0.143, 0.381, 0.613, 0.862
+	);
+	private final List<Double> yCenters = Arrays.asList(
+			0.160, 0.305, 0.440, 0.580, 0.717, 0.856
+	);
 	private Mat checkerImage;
 	private List<List<Point>> centers;
 	private Integer xScale;
@@ -44,8 +50,8 @@ public class ColorChecker {
 		this.checkerImage = image.clone();
 		Integer width = image.width();
 		Integer height = image.height();
-		xScale = (int) (0.06 * width);
-		yScale = (int) (0.03 * height);
+		xScale = (int) (0.04 * width);
+		yScale = (int) (0.02 * height);
 
 		this.centers = new ArrayList<List<Point>>();
 		for (Double y : yCenters) {
@@ -76,7 +82,11 @@ public class ColorChecker {
 			}
 		}
 
-		model.train(train, answers);
+		try {
+			model.train(train, answers);
+		} catch (SingularMatrixException e) {
+			return result;
+		}
 
 		result.convertTo(result, CvType.CV_64FC3);
 		int channels = result.channels();
@@ -136,6 +146,30 @@ public class ColorChecker {
 		}
 
 		return colors;
+	}
+
+	public Mat drawSamplePoints() {
+		Mat result = checkerImage.clone();
+		Scalar red = new Scalar(0, 0, 255);
+		Scalar blue = new Scalar(255, 0, 0);
+
+		for (Integer row = 0; row < 6; ++row) {
+			for (Integer col = 0; col < 4; ++col) {
+				Point center = centers.get(row).get(col);
+				List<Point> points = getSurroundingPoints(center);
+				int i = 0;
+				for (Point p : points) {
+					if (i % 2 == 0) {
+						Core.circle(result, p, 10, red, Core.FILLED);
+					} else {
+						Core.circle(result, p, 10, blue, Core.FILLED);
+					}
+					i += 1;
+				}
+			}
+		}
+
+		return result;
 	}
 
 	private List<Point> getSurroundingPoints(Point center) {
