@@ -48,4 +48,9 @@ public abstract class AbstractRGB extends AbstractOLSMLR implements RegressionMo
 		color.put(new double[] {getEstimate(features, blueBeta),
 			getEstimate(features, greenBeta), getEstimate(features, redBeta)});
 	}
+
+	@Override
+	protected double[] getFeatures(Color color) {
+		return getFeatures(color.toBGR());
+	}
 }

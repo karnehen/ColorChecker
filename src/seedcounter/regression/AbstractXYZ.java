@@ -34,15 +34,20 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 
 	@Override
 	public Color calibrate(Color color) {
-		double[] features = getFeatures(color.toXYZ());
+		double[] features = getFeatures(color);
 		return Color.ofXYZ(new double[] {getEstimate(features, xBeta),
 			getEstimate(features, yBeta), getEstimate(features, zBeta)});
 	}
 
 	@Override
 	public void calibrate(DoubleBuffer color) {
-		double[] features = getFeatures(Color.ofBGR(color).toXYZ());
+		double[] features = getFeatures(Color.ofBGR(color));
 		color.put(Color.ofXYZ(new double[] {getEstimate(features, xBeta),
 			getEstimate(features, yBeta), getEstimate(features, zBeta)}).toBGR());
+	}
+
+	@Override
+	protected double[] getFeatures(Color color) {
+		return getFeatures(color.toXYZ());
 	}
 }

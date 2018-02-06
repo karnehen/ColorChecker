@@ -20,7 +20,7 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 
 		for (int i = 0; i < answers.size(); ++i) {
 			answersArray[i] = answers.get(i);
-			trainArray[i] = getFeatures(trainSet.get(i).toXYZ());
+			trainArray[i] = getFeatures(trainSet.get(i));
 		}
 
 		OLSMultipleLinearRegression regressor = new OLSMultipleLinearRegression();
@@ -43,10 +43,12 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 	abstract public void train(List<Color> train, List<Color> answers);
 
 	@Override
-	abstract public Color calibrate(Color c);
+	abstract public Color calibrate(Color color);
 
 	@Override
-	abstract public void calibrate(DoubleBuffer c);
+	abstract public void calibrate(DoubleBuffer color);
+
+	abstract protected double[] getFeatures(Color color);
 
 	abstract protected double[] getFeatures(DoubleBuffer color);
 }
