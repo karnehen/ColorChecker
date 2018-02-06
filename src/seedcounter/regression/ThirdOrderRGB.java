@@ -3,8 +3,12 @@ package seedcounter.regression;
 import java.nio.DoubleBuffer;
 
 public class ThirdOrderRGB extends AbstractRGB implements RegressionModel {
+	public ThirdOrderRGB(boolean intercept) {
+		super(intercept);
+	}
+
 	@Override
-	protected double[] bgrToFeatures(DoubleBuffer bgr) {
+	protected double[] getFeatures(DoubleBuffer bgr) {
 		double blue = bgr.get(bgr.position());
 		double green = bgr.get(bgr.position() + 1);
 		double red = bgr.get(bgr.position() + 2);

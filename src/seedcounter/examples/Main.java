@@ -36,11 +36,10 @@ import seedcounter.colormetric.ColorMetric;
 import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.colormetric.HumanFriendlyRGB;
-import seedcounter.regression.IdentityModel;
+import seedcounter.regression.RegressionFactory;
+import seedcounter.regression.RegressionFactory.ColorSpace;
+import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
-import seedcounter.regression.SecondOrderRGB;
-import seedcounter.regression.SimpleRGB;
-import seedcounter.regression.ThirdOrderRGB;
 
 public class Main {
 	private static final String INPUT_DIRECTORY = "../../photos/SPH-L900";
@@ -177,10 +176,11 @@ public class Main {
 		new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
 
 		List<RegressionModel> models = new ArrayList<RegressionModel>();
-		models.add(new SimpleRGB());
-		models.add(new SecondOrderRGB());
-		models.add(new ThirdOrderRGB());
-		models.add(new IdentityModel());
+		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.FIRST, false));
+		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.SECOND, false));
+		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.THIRD, false));
+		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.IDENTITY, false));
+
 		List<ColorMetric> metrics = new ArrayList<ColorMetric>();
 		metrics.add(EuclideanRGB.create());
 		metrics.add(HumanFriendlyRGB.create());

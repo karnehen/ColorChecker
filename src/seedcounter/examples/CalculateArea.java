@@ -23,8 +23,10 @@ import seedcounter.FindColorChecker;
 import seedcounter.Helper;
 import seedcounter.MatchingModel;
 import seedcounter.Quad;
+import seedcounter.regression.RegressionFactory;
+import seedcounter.regression.RegressionFactory.ColorSpace;
+import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
-import seedcounter.regression.ThirdOrderRGB;
 
 public class CalculateArea {
 	private static final List<String> INPUT_FILES = Arrays.asList(
@@ -70,7 +72,8 @@ public class CalculateArea {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-		RegressionModel model = new ThirdOrderRGB();
+		RegressionModel model = RegressionFactory.createModel(
+				ColorSpace.XYZ, Order.SECOND, false);
 
 		for (String inputFile : INPUT_FILES) {
 			System.out.println(inputFile);
