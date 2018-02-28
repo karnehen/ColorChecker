@@ -10,11 +10,11 @@ import seedcounter.Color;
 public abstract class AbstractOLSMLR implements RegressionModel {
 	private final boolean intercept;
 
-	public AbstractOLSMLR(boolean intercept) {
+	AbstractOLSMLR(boolean intercept) {
 		this.intercept = intercept;
 	}
 
-	protected double[] trainChannel(List<Color> trainSet, List<Double> answers) {
+	double[] trainChannel(List<Color> trainSet, List<Double> answers) {
 		double[][] trainArray = new double[answers.size()][3];
 		double[] answersArray = new double[answers.size()];
 
@@ -30,7 +30,7 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 		return regressor.estimateRegressionParameters();
 	}
 
-	protected double getEstimate(double[] features, double[] beta) {
+	double getEstimate(double[] features, double[] beta) {
 		double answer = (intercept ? 1 : 0) * beta[0];
 		for (int i = 0; i < features.length; ++i) {
 			answer += features[i] * beta[i + (intercept ? 1 : 0)];
@@ -41,9 +41,6 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 
 	@Override
 	abstract public void train(List<Color> train, List<Color> answers);
-
-	@Override
-	abstract public Color calibrate(Color color);
 
 	@Override
 	abstract public void calibrate(DoubleBuffer color);

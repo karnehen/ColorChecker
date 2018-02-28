@@ -10,8 +10,8 @@ public class CellColors {
 	private final List<Color> actualColors;
 
 	public CellColors() {
-		referenceColors = new ArrayList<Color>();
-		actualColors = new ArrayList<Color>();
+		referenceColors = new ArrayList<>();
+		actualColors = new ArrayList<>();
 	}
 
 	public void addColor(Color actualColor, Color referenceColor) {

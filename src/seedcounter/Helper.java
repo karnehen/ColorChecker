@@ -29,7 +29,7 @@ public class Helper {
 	}
 
 	public static Mat filterByMask(Mat image, Mat mask) {
-		List<Mat> channels = new ArrayList<Mat>();
+		List<Mat> channels = new ArrayList<>();
 		Core.split(image, channels);
 		for (int i = 0; i < 3; ++i) {
 			Mat c = channels.get(i);
@@ -48,7 +48,7 @@ public class Helper {
 	public static List<MatOfPoint> getContours(Mat image) {
 		Mat gray = new Mat();
 		Imgproc.cvtColor(image, gray, Imgproc.COLOR_RGB2GRAY);
-		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		List<MatOfPoint> contours = new ArrayList<>();
 	    Mat hierarchy = new Mat();
 		Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
 	

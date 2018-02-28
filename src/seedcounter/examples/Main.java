@@ -3,11 +3,7 @@ package seedcounter.examples;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javafx.util.Pair;
 
@@ -24,7 +20,7 @@ import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.highgui.Highgui;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import seedcounter.ColorChecker;
@@ -41,7 +37,7 @@ import seedcounter.regression.RegressionFactory.ColorSpace;
 import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 
-public class Main {
+class Main {
 	private static final String INPUT_DIRECTORY = "../../photos/SPH-L900";
 	private static final String REFERENCE_FILE = "reference.png";
 	private static final List<MatchingModel> MATCHING_MODELS = Arrays.asList(
@@ -54,8 +50,8 @@ public class Main {
 		);
 	// targets and ranges
 	private static final List<Pair<Scalar, Scalar>> SEED_TYPES = Arrays.asList(
-			new Pair<Scalar, Scalar>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
-			new Pair<Scalar, Scalar>(new Scalar(17, 67, 232), new Scalar(50, 50, 50))
+			new Pair<>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
+			new Pair<>(new Scalar(17, 67, 232), new Scalar(50, 50, 50))
 		);
 
 	private static void printMap(PrintWriter writer, Map<String, String> map) {
@@ -80,7 +76,7 @@ public class Main {
 
 	private static void printSingleSeed(MatOfPoint contour, Mat image, Mat seedBuffer,
 			PrintWriter writer, Map<String, String> data) {
-		Imgproc.drawContours(seedBuffer, Arrays.asList(contour), 0,
+		Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0,
 				new Scalar(255.0), Core.FILLED);
 
 		int minX = image.cols() - 1;
@@ -123,7 +119,7 @@ public class Main {
 				}
 			}
 		}
-		Imgproc.drawContours(seedBuffer, Arrays.asList(contour), 0, new Scalar(0.0));
+		Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0, new Scalar(0.0));
 	}
 
 	private static void printSeeds(Mat image, PrintWriter writer,
@@ -175,24 +171,24 @@ public class Main {
 		File inputDirectory = new File(INPUT_DIRECTORY);
 		new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
 
-		List<RegressionModel> models = new ArrayList<RegressionModel>();
+		List<RegressionModel> models = new ArrayList<>();
 		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.FIRST, false));
 		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.SECOND, false));
 		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.THIRD, false));
 		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.IDENTITY, false));
 
-		List<ColorMetric> metrics = new ArrayList<ColorMetric>();
+		List<ColorMetric> metrics = new ArrayList<>();
 		metrics.add(EuclideanRGB.create());
 		metrics.add(HumanFriendlyRGB.create());
 		metrics.add(EuclideanLab.create());
 
 		PrintWriter calibrationLog = new PrintWriter(
 				inputDirectory.getAbsolutePath() + "/calibration_log.txt");
-		Map<String, String> calibrationData = new HashMap<String, String>();
+		Map<String, String> calibrationData = new HashMap<>();
 		calibrationData.put("header", "1");
 		PrintWriter seedLog = new PrintWriter(
 				inputDirectory.getAbsolutePath() + "/seed_log.txt");
-		Map<String, String> seedData = new HashMap<String, String>();
+		Map<String, String> seedData = new HashMap<>();
 		seedData.put("header", "1");
 
 		for (File inputFile : inputDirectory.listFiles()) {
@@ -205,14 +201,14 @@ public class Main {
 			calibrationData.put("file", inputFile.getName());
 			seedData.put("file", inputFile.getName());
 
-			Mat image = Highgui.imread(inputFile.getAbsolutePath(),
-					Highgui.CV_LOAD_IMAGE_ANYCOLOR | Highgui.CV_LOAD_IMAGE_ANYDEPTH);
+			Mat image = Imgcodecs.imread(inputFile.getAbsolutePath(),
+					Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
 			Mat mask = new Mat(image.rows(), image.cols(), CvType.CV_8UC1, new Scalar(0));
 
 			Quad quad = f.findColorChecker(image);
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
-			Highgui.imwrite(inputDirectory + "/result/" + "extracted_"
+			Imgcodecs.imwrite(inputDirectory + "/result/" + "extracted_"
 					+ inputFile.getName(), checker.drawSamplePoints());
 			Double scale = checker.pixelArea(quad);
 			calibrationData.put("scale", scale.toString());
@@ -240,7 +236,7 @@ public class Main {
 				printMap(calibrationLog, calibrationData);
 				Mat calibrated = checker.calibrationBgr(image, m);
 				f.fillColorChecker(calibrated, quad);
-				Highgui.imwrite(inputDirectory + "/result/" + name +
+				Imgcodecs.imwrite(inputDirectory + "/result/" + name +
 						"_" + inputFile.getName(), calibrated);
 
 				if (!name.equals("IdentityModel")) {
@@ -249,7 +245,7 @@ public class Main {
 				Mat filtered = filterByMask(calibrated, mask);
 				calibrated.release();
 			
-				Highgui.imwrite(inputDirectory + "/result/" + name +
+				Imgcodecs.imwrite(inputDirectory + "/result/" + name +
 						"_filtered_" + inputFile.getName(), filtered);
 				printSeeds(filtered, seedLog, seedData, scale);
 				filtered.release();

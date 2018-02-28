@@ -15,7 +15,7 @@ public class Color {
 	private final double a;
 	private final double b;
 
-	public Color(double red, double green, double blue) {
+	private Color(double red, double green, double blue) {
 		this.red = red;
 		this.green = green;
 		this.blue = blue;

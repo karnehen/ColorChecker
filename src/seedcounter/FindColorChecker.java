@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
+import org.opencv.core.DMatch;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
@@ -16,25 +18,24 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.features2d.DMatch;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.KeyPoint;
-import org.opencv.highgui.Highgui;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 
 public class FindColorChecker {
-	private Mat referenceImage;
-	private MatchingModel matchingModel;
-	private MatOfKeyPoint referenceKeypoints;
-	private MatOfKeyPoint referenceDescriptors;
-	private FeatureDetector detector;
-	private DescriptorExtractor extractor;
+	private final Mat referenceImage;
+	private final MatchingModel matchingModel;
+	private final MatOfKeyPoint referenceKeypoints;
+	private final MatOfKeyPoint referenceDescriptors;
+	private final FeatureDetector detector;
+	private final DescriptorExtractor extractor;
 
 	public FindColorChecker(String referenceFile, MatchingModel matchingModel) {
-		referenceImage = Highgui.imread(referenceFile,
-				Highgui.CV_LOAD_IMAGE_ANYCOLOR | Highgui.CV_LOAD_IMAGE_ANYDEPTH);
+		referenceImage = Imgcodecs.imread(referenceFile,
+				Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
 		this.matchingModel = matchingModel;
 
 		referenceKeypoints = new MatOfKeyPoint();
@@ -61,12 +62,12 @@ public class FindColorChecker {
 	}
 
 	private LinkedList<DMatch> getGoodMatches(MatOfKeyPoint descriptors) {
-		List<MatOfDMatch> matches = new LinkedList<MatOfDMatch>();
+		List<MatOfDMatch> matches = new LinkedList<>();
 		DescriptorMatcher descriptorMatcher = DescriptorMatcher.create(
 				matchingModel.getMatcher());
 		descriptorMatcher.knnMatch(referenceDescriptors, descriptors, matches, 2);
 
-		LinkedList<DMatch> goodMatches = new LinkedList<DMatch>();
+		LinkedList<DMatch> goodMatches = new LinkedList<>();
 
 		for (MatOfDMatch matofDMatch : matches) {
 			DMatch[] dmatcharray = matofDMatch.toArray();
@@ -88,9 +89,9 @@ public class FindColorChecker {
 		LinkedList<Point> referencePoints = new LinkedList<>();
 		LinkedList<Point> points = new LinkedList<>();
 
-		for (int i = 0; i < goodMatches.size(); i++) {
-			referencePoints.addLast(referenceKeypointlist.get(goodMatches.get(i).queryIdx).pt);
-			points.addLast(keypointlist.get(goodMatches.get(i).trainIdx).pt);
+		for (DMatch goodMatch : goodMatches) {
+			referencePoints.addLast(referenceKeypointlist.get(goodMatch.queryIdx).pt);
+			points.addLast(keypointlist.get(goodMatch.trainIdx).pt);
 		}
 
 		MatOfPoint2f referenceMatOfPoint2f = new MatOfPoint2f();
@@ -105,10 +106,10 @@ public class FindColorChecker {
 		Mat referenceCorners = new Mat(4, 1, CvType.CV_32FC2);
 		Mat corners = new Mat(4, 1, CvType.CV_32FC2);
 
-		referenceCorners.put(0, 0, new double[]{-0.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
-		referenceCorners.put(1, 0, new double[]{1.01 * referenceImage.cols(), -0.01 * referenceImage.rows()});
-		referenceCorners.put(2, 0, new double[]{1.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
-		referenceCorners.put(3, 0, new double[]{-0.01 * referenceImage.cols(), 1.01 * referenceImage.rows()});
+		referenceCorners.put(0, 0, -0.01 * referenceImage.cols(), -0.01 * referenceImage.rows());
+		referenceCorners.put(1, 0, 1.01 * referenceImage.cols(), -0.01 * referenceImage.rows());
+		referenceCorners.put(2, 0, 1.01 * referenceImage.cols(), 1.01 * referenceImage.rows());
+		referenceCorners.put(3, 0, -0.01 * referenceImage.cols(), 1.01 * referenceImage.rows());
 
 		Core.perspectiveTransform(referenceCorners, corners, homography);
 
@@ -120,11 +121,11 @@ public class FindColorChecker {
 		MatOfPoint points = new MatOfPoint();
 
 		points.fromArray(quad.getPoints());
-		Core.fillConvexPoly(image, points, getBackgroundColor(image, quad));
+		Imgproc.fillConvexPoly(image, points, getBackgroundColor(image, quad));
 	}
 
 	private Scalar getBackgroundColor(Mat image, Quad quad) {
-		List<double[]> colors = new ArrayList<double[]>();
+		List<double[]> colors = new ArrayList<>();
 		double sumBlue = 0.0;
 		double sumGreen = 0.0;
 		double sumRed = 0.0;
@@ -145,7 +146,7 @@ public class FindColorChecker {
 		double meanRed = sumRed / colors.size();
 
 		for (int i = 0; i < 10; ++i) {
-			List<double[]> buffer = new ArrayList<double[]>();
+			List<double[]> buffer = new ArrayList<>();
 			sumBlue = 0.0;
 			sumGreen = 0.0;
 			sumRed = 0.0;
