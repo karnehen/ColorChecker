@@ -12,10 +12,10 @@ import org.opencv.imgproc.Imgproc;
  * @version 0.2.
  */
 public class Quad {
-	private Point tl;
-	private Point tr;
-	private Point br;
-	private Point bl;
+	private final Point tl;
+	private final Point tr;
+	private final Point br;
+	private final Point bl;
 	
 	public Quad(Point tl, Point tr, Point br, Point bl) {
 		this.tl = tl;
@@ -47,8 +47,7 @@ public class Quad {
 	}
 	
 	public Point[] getPoints() {
-		Point[] points = {tl, tr, br, bl};
-		return points;
+		return new Point[]{tl, tr, br, bl};
 	}
 	
 	public double getBigSideSize() {

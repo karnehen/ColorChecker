@@ -11,10 +11,11 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 import seedcounter.regression.RegressionModel;
 
 public class ColorChecker {
-	public final static List<List<Scalar>> BGR_REFERENCE_COLORS = Arrays.asList(
+	private final static List<List<Scalar>> BGR_REFERENCE_COLORS = Arrays.asList(
 		Arrays.asList(new Scalar(171,191,99), new Scalar(41,161,229), new Scalar(166,136,0), new Scalar(50,50,50)),
 		Arrays.asList(new Scalar(176,129,130), new Scalar(62,189,160), new Scalar(150,84,188), new Scalar(85,84,83)),
 		Arrays.asList(new Scalar(65,108,90), new Scalar(105,59,91), new Scalar(22,200,238), new Scalar(121,121,120)),
@@ -23,25 +24,10 @@ public class ColorChecker {
 		Arrays.asList(new Scalar(67,81,115), new Scalar(45,123,220), new Scalar(147,62,43), new Scalar(240,245,245))
 	);
 
-	public final static List<List<Scalar>> REFERENCE_COLORS = Arrays.asList(
-			Arrays.asList(new Scalar(0.261, 0.343, 43.1), new Scalar(0.473, 0.438, 43.1), new Scalar(0.196, 0.252, 19.8), new Scalar(0.31, 0.316, 3.1)),
-			Arrays.asList(new Scalar(0.265, 0.24, 24.3), new Scalar(0.38, 0.489, 44.3), new Scalar(0.364, 0.233, 19.8), new Scalar(0.31, 0.316, 9)),
-			Arrays.asList(new Scalar(0.337, 0.422, 13.3), new Scalar(0.285, 0.202, 6.6), new Scalar(0.448, 0.47, 59.1), new Scalar(0.31, 0.316, 19.8)),
-			Arrays.asList(new Scalar(0.247, 0.251, 19.3), new Scalar(0.453, 0.306, 19.8), new Scalar(0.539, 0.313, 12), new Scalar(0.31, 0.316, 36.2)),
-			Arrays.asList(new Scalar(0.377, 0.345, 35.8), new Scalar(0.211, 0.175, 12), new Scalar(0.305, 0.478, 23.4), new Scalar(0.31, 0.316, 59.1)),
-			Arrays.asList(new Scalar(0.4, 0.35, 10.1), new Scalar(0.506, 0.407, 30.1), new Scalar(0.187, 0.129, 6.1), new Scalar(0.31, 0.316, 90))
-	);
-
-	private final List<Double> xCenters = Arrays.asList(
-			0.143, 0.381, 0.613, 0.862
-	);
-	private final List<Double> yCenters = Arrays.asList(
-			0.160, 0.305, 0.440, 0.580, 0.717, 0.856
-	);
-	private Mat checkerImage;
-	private List<List<Point>> centers;
-	private Integer xScale;
-	private Integer yScale;
+	private final Mat checkerImage;
+	private final List<List<Point>> centers;
+	private final Integer xScale;
+	private final Integer yScale;
 
 	private static final Double REAL_WIDTH = 64.0; // millimeters
 	private static final Double REAL_HEIGHT = 108.0; // millimeters
@@ -50,12 +36,15 @@ public class ColorChecker {
 		this.checkerImage = image.clone();
 		Integer width = image.width();
 		Integer height = image.height();
+
 		xScale = (int) (0.04 * width);
 		yScale = (int) (0.02 * height);
+		List<Double> xCenters = Arrays.asList(0.143, 0.381, 0.613, 0.862);
+		List<Double> yCenters = Arrays.asList(0.160, 0.305, 0.440, 0.580, 0.717, 0.856);
 
-		this.centers = new ArrayList<List<Point>>();
+		this.centers = new ArrayList<>();
 		for (Double y : yCenters) {
-			List<Point> points = new ArrayList<Point>();
+			List<Point> points = new ArrayList<>();
 			for (Double x : xCenters) {
 				points.add(new Point(x * width, y * height));
 			}
@@ -69,14 +58,14 @@ public class ColorChecker {
 
 	public Mat calibrationBgr(Mat srcImage, RegressionModel model) {
 		Mat result = srcImage.clone();
-		List<Color> train = new ArrayList<Color>();
-		List<Color> answers = new ArrayList<Color>();
+		List<Color> train = new ArrayList<>();
+		List<Color> answers = new ArrayList<>();
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
 				List<double[]> sample = getSampleColors(this.checkerImage, row, col, false);
-				for (Integer i = 0; i < sample.size(); ++i) {
-					train.add(Color.ofBGR(sample.get(i)));
+				for (double[] s : sample) {
+					train.add(Color.ofBGR(s));
 					answers.add(Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col)));
 				}
 			}
@@ -125,7 +114,7 @@ public class ColorChecker {
 		Point center = centers.get(row).get(col);
 		List<Point> points = getSurroundingPoints(center);
 
-		List<double[]> colors = new ArrayList<double[]>();
+		List<double[]> colors = new ArrayList<>();
 
 		if (allPoints) {
 			int minX = (int) points.get(0).x;
@@ -160,9 +149,9 @@ public class ColorChecker {
 				int i = 0;
 				for (Point p : points) {
 					if (i % 2 == 0) {
-						Core.circle(result, p, 10, red, Core.FILLED);
+						Imgproc.circle(result, p, 10, red, Core.FILLED);
 					} else {
-						Core.circle(result, p, 10, blue, Core.FILLED);
+						Imgproc.circle(result, p, 10, blue, Core.FILLED);
 					}
 					i += 1;
 				}

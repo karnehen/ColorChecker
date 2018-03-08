@@ -11,15 +11,15 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 	private double[] yBeta;
 	private double[] zBeta;
 
-	public AbstractXYZ(boolean intercept) {
+	AbstractXYZ(boolean intercept) {
 		super(intercept);
 	}
 
 	@Override
 	public void train(List<Color> train, List<Color> answers) {
-		List<Double> xAnswers = new ArrayList<Double>();
-		List<Double> yAnswers = new ArrayList<Double>();
-		List<Double> zAnswers = new ArrayList<Double>();
+		List<Double> xAnswers = new ArrayList<>();
+		List<Double> yAnswers = new ArrayList<>();
+		List<Double> zAnswers = new ArrayList<>();
 
 		for (Color c : answers) {
 			xAnswers.add(c.X());
@@ -30,13 +30,6 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 		xBeta = trainChannel(train, xAnswers);
 		yBeta = trainChannel(train, yAnswers);
 		zBeta = trainChannel(train, zAnswers);
-	}
-
-	@Override
-	public Color calibrate(Color color) {
-		double[] features = getFeatures(color);
-		return Color.ofXYZ(new double[] {getEstimate(features, xBeta),
-			getEstimate(features, yBeta), getEstimate(features, zBeta)});
 	}
 
 	@Override

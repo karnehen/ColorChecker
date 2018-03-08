@@ -10,7 +10,7 @@ import org.opencv.imgproc.Imgproc;
 import javafx.util.Pair;
 
 public class HSVBinarization {
-	List<Pair<Scalar, Scalar>> targetsAndRanges;
+	private final List<Pair<Scalar, Scalar>> targetsAndRanges;
 	
 	public HSVBinarization(List<Pair<Scalar, Scalar>> targetsAndRanges) {
 		this.targetsAndRanges = targetsAndRanges;

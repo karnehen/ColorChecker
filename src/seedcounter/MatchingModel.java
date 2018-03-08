@@ -1,12 +1,14 @@
 package seedcounter;
 
+import org.opencv.features2d.Feature2D;
+
 public class MatchingModel {
-	private final int detector;
-	private final int extractor;
+	private final Feature2D detector;
+	private final Feature2D extractor;
 	private final int matcher;
 	private final float threshold;
 
-	public MatchingModel(int detector, int extractor,
+	public MatchingModel(Feature2D detector, Feature2D extractor,
 			int matcher, float threshold) {
 		this.detector = detector;
 		this.extractor = extractor;
@@ -14,11 +16,11 @@ public class MatchingModel {
 		this.threshold = threshold;
 	}
 
-	public int getDetector() {
+	public Feature2D getDetector() {
 		return detector;
 	}
 
-	public int getExtractor() {
+	public Feature2D getExtractor() {
 		return extractor;
 	}
 
