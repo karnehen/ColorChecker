@@ -11,12 +11,11 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import org.opencv.xfeatures2d.SIFT;
 import seedcounter.ColorChecker;
 import seedcounter.FindColorChecker;
 import seedcounter.Helper;
@@ -34,10 +33,6 @@ class CalculateArea {
 			"IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
 	);
 	private static final String REFERENCE_FILE = "reference.png";
-	private static final MatchingModel MATCHING_MODEL = new MatchingModel(
-			FeatureDetector.SIFT, DescriptorExtractor.SIFT,
-			DescriptorMatcher.FLANNBASED, 0.7f
-	);
 	// targets and ranges
 	private static final List<Pair<Scalar, Scalar>> POTATO_TYPES = Arrays.asList(
 			new Pair<>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
@@ -71,10 +66,15 @@ class CalculateArea {
 
 	public static void main(String[] args) {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+
+		MatchingModel MATCHING_MODEL = new MatchingModel(
+			SIFT.create(), SIFT.create(),
+			DescriptorMatcher.FLANNBASED, 0.7f
+		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
 		RegressionModel model = RegressionFactory.createModel(
-				ColorSpace.XYZ, Order.THIRD, false);
+				ColorSpace.RGB, Order.FIRST, false);
 
 		ColorMetric metric = EuclideanLab.create();
 

@@ -18,9 +18,8 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Feature2D;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -30,8 +29,8 @@ public class FindColorChecker {
 	private final MatchingModel matchingModel;
 	private final MatOfKeyPoint referenceKeypoints;
 	private final MatOfKeyPoint referenceDescriptors;
-	private final FeatureDetector detector;
-	private final DescriptorExtractor extractor;
+	private final Feature2D detector;
+	private final Feature2D extractor;
 
 	public FindColorChecker(String referenceFile, MatchingModel matchingModel) {
 		referenceImage = Imgcodecs.imread(referenceFile,
@@ -39,11 +38,11 @@ public class FindColorChecker {
 		this.matchingModel = matchingModel;
 
 		referenceKeypoints = new MatOfKeyPoint();
-		detector = FeatureDetector.create(this.matchingModel.getDetector());
+		detector = this.matchingModel.getDetector();
 		detector.detect(referenceImage, referenceKeypoints);
 
 		referenceDescriptors = new MatOfKeyPoint();
-		extractor = DescriptorExtractor.create(this.matchingModel.getExtractor());
+		extractor = this.matchingModel.getExtractor();
 		extractor.compute(referenceImage, referenceKeypoints, referenceDescriptors);
 	}
 

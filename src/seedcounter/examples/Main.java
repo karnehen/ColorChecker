@@ -17,12 +17,13 @@ import org.opencv.core.Point;
 import org.opencv.core.Range;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import org.opencv.xfeatures2d.SIFT;
+import org.opencv.xfeatures2d.SURF;
 import seedcounter.ColorChecker;
 import seedcounter.FindColorChecker;
 import seedcounter.Helper;
@@ -40,14 +41,6 @@ import seedcounter.regression.RegressionModel;
 class Main {
 	private static final String INPUT_DIRECTORY = "../../photos/SPH-L900";
 	private static final String REFERENCE_FILE = "reference.png";
-	private static final List<MatchingModel> MATCHING_MODELS = Arrays.asList(
-			new MatchingModel(FeatureDetector.SURF, DescriptorExtractor.SURF,
-					DescriptorMatcher.FLANNBASED, 0.7f),
-			new MatchingModel(FeatureDetector.SIFT, DescriptorExtractor.SIFT,
-					DescriptorMatcher.FLANNBASED, 0.7f),
-			new MatchingModel(FeatureDetector.ORB, DescriptorExtractor.ORB,
-					DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f)
-		);
 	// targets and ranges
 	private static final List<Pair<Scalar, Scalar>> SEED_TYPES = Arrays.asList(
 			new Pair<>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
@@ -166,6 +159,15 @@ class Main {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+
+		 List<MatchingModel> MATCHING_MODELS = Arrays.asList(
+				new MatchingModel(SURF.create(), SURF.create(),
+						DescriptorMatcher.FLANNBASED, 0.7f),
+				new MatchingModel(SIFT.create(), SIFT.create(),
+						DescriptorMatcher.FLANNBASED, 0.7f),
+				new MatchingModel(ORB.create(), ORB.create(),
+						DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f)
+		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODELS.get(1));
 
 		File inputDirectory = new File(INPUT_DIRECTORY);
