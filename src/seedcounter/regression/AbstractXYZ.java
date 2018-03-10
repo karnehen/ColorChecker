@@ -10,6 +10,7 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 	private double[] xBeta;
 	private double[] yBeta;
 	private double[] zBeta;
+	private double aic;
 
 	AbstractXYZ(boolean intercept) {
 		super(intercept);
@@ -27,9 +28,17 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 			zAnswers.add(c.Z());
 		}
 
-		xBeta = trainChannel(train, xAnswers);
-		yBeta = trainChannel(train, yAnswers);
-		zBeta = trainChannel(train, zAnswers);
+		RegressionResult result = trainChannel(train, xAnswers);
+		xBeta = result.getFeatures();
+		aic = result.getAIC();
+
+		result = trainChannel(train, yAnswers);
+		yBeta = result.getFeatures();
+		aic += result.getAIC();
+
+		result = trainChannel(train, zAnswers);
+		zBeta = result.getFeatures();
+		aic += result.getAIC();
 	}
 
 	@Override
@@ -37,6 +46,11 @@ public abstract class AbstractXYZ extends AbstractOLSMLR implements RegressionMo
 		double[] features = getFeatures(Color.ofBGR(color));
 		color.put(Color.ofXYZ(new double[] {getEstimate(features, xBeta),
 			getEstimate(features, yBeta), getEstimate(features, zBeta)}).toBGR());
+	}
+
+	@Override
+	public double getAIC() {
+		return aic;
 	}
 
 	@Override

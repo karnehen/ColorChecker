@@ -2,6 +2,7 @@ package seedcounter.regression;
 
 import java.nio.DoubleBuffer;
 import java.util.List;
+import java.util.stream.DoubleStream;
 
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
@@ -14,7 +15,7 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 		this.intercept = intercept;
 	}
 
-	double[] trainChannel(List<Color> trainSet, List<Double> answers) {
+	RegressionResult trainChannel(List<Color> trainSet, List<Double> answers) {
 		double[][] trainArray = new double[answers.size()][3];
 		double[] answersArray = new double[answers.size()];
 
@@ -27,7 +28,7 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 		regressor.setNoIntercept(!intercept);
 		regressor.newSampleData(answersArray, trainArray);
 
-		return regressor.estimateRegressionParameters();
+		return new RegressionResult(regressor);
 	}
 
 	double getEstimate(double[] features, double[] beta) {
@@ -48,4 +49,24 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 	abstract protected double[] getFeatures(Color color);
 
 	abstract protected double[] getFeatures(DoubleBuffer color);
+
+	public class RegressionResult {
+		public RegressionResult(OLSMultipleLinearRegression regressor) {
+			this.features = regressor.estimateRegressionParameters();
+		    int samples = regressor.estimateResiduals().length;
+			double rss = regressor.calculateResidualSumOfSquares();
+			this.aic = 2.0 * this.features.length + samples * Math.log(rss / samples);
+		}
+
+		private final double[] features;
+		private final double aic;
+
+		public double[] getFeatures() {
+			return features;
+		}
+
+		public double getAIC() {
+			return aic;
+		}
+	}
 }
