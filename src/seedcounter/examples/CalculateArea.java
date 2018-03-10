@@ -90,6 +90,7 @@ class CalculateArea {
 			Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, model);
 			System.out.println(inputFile + ": "
 					+ checker.getCellColors(calibratedChecker).calculateMetric(metric));
+			System.out.println("AIC: " + model.getAIC());
 			calibratedChecker.release();
 	
 			Mat calibrated = checker.calibrationBgr(image, model);

@@ -10,6 +10,7 @@ public abstract class AbstractRGB extends AbstractOLSMLR implements RegressionMo
 	private double[] redBeta;
 	private double[] greenBeta;
 	private double[] blueBeta;
+	private double aic;
 
 	AbstractRGB(boolean intercept) {
 		super(intercept);
@@ -27,9 +28,17 @@ public abstract class AbstractRGB extends AbstractOLSMLR implements RegressionMo
 			greenAnswers.add(c.green());
 		}
 
-		redBeta = trainChannel(train, redAnswers);
-		blueBeta = trainChannel(train, blueAnswers);
-		greenBeta = trainChannel(train, greenAnswers);
+		RegressionResult result = trainChannel(train, redAnswers);
+		redBeta = result.getFeatures();
+		aic = result.getAIC();
+
+		result = trainChannel(train, blueAnswers);
+		blueBeta = result.getFeatures();
+		aic += result.getAIC();
+
+		result = trainChannel(train, greenAnswers);
+		greenBeta = result.getFeatures();
+		aic += result.getAIC();
 	}
 
 	/*
@@ -40,6 +49,11 @@ public abstract class AbstractRGB extends AbstractOLSMLR implements RegressionMo
 		double[] features = getFeatures(color);
 		color.put(new double[] {getEstimate(features, blueBeta),
 			getEstimate(features, greenBeta), getEstimate(features, redBeta)});
+	}
+
+	@Override
+	public double getAIC() {
+		return aic;
 	}
 
 	@Override
