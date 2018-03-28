@@ -113,7 +113,7 @@ public class Color {
 		return new Scalar(lab.get(0,  0));
 	}
 
-	private static double linearizeRGB(double channelColor) {
+	public static double linearizeRGB(double channelColor) {
 		channelColor /= 255.0;
 		if (channelColor > 0.04045) {
 			channelColor = Math.pow((channelColor + 0.055) / 1.055, 2.4);
@@ -124,7 +124,7 @@ public class Color {
 		return channelColor * 100.0;
 	}
 
-	private static double inverseLinearizeRGB(double channelColor) {
+	public static double inverseLinearizeRGB(double channelColor) {
 		channelColor /= 100.0;
 		if (channelColor > 0.0031308) {
 			channelColor = 1.055 * Math.pow(channelColor, 1.0 / 2.4) - 0.055;

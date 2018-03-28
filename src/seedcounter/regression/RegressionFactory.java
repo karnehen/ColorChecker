@@ -1,8 +1,10 @@
 package seedcounter.regression;
 
+import seedcounter.ColorSpace;
+
 public class RegressionFactory {
 	public static RegressionModel createModel(ColorSpace colorSpace,
-			Order order, boolean intercept) {
+											  Order order, boolean intercept) {
 		if (order == Order.IDENTITY) {
 			return new IdentityModel();
 		}
@@ -19,11 +21,6 @@ public class RegressionFactory {
 				default: return new ThirdOrderXYZ(intercept);
 			}
 		}
-	}
-	
-	public enum ColorSpace {
-		RGB,
-		XYZ
 	}
 
 	public enum Order {
