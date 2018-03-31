@@ -1,17 +1,37 @@
 package seedcounter.regression;
 
 import java.nio.DoubleBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
 import seedcounter.Color;
 
-public abstract class AbstractOLSMLR implements RegressionModel {
+public abstract class AbstractOLS implements RegressionModel {
 	private final boolean intercept;
+	private double[] beta1;
+	private double[] beta2;
+	private double[] beta3;
 
-	AbstractOLSMLR(boolean intercept) {
+	AbstractOLS(boolean intercept) {
 		this.intercept = intercept;
+	}
+
+	public void train(List<Color> train, List<Color> answers) {
+		List<Double> answers1 = new ArrayList<>();
+		List<Double> answers2 = new ArrayList<>();
+		List<Double> answers3 = new ArrayList<>();
+
+		for (Color c : answers) {
+			answers1.add(c.blue());
+			answers2.add(c.green());
+			answers3.add(c.red());
+		}
+
+		beta1 = trainChannel(train, answers1);
+		beta2 = trainChannel(train, answers2);
+		beta3 = trainChannel(train, answers3);
 	}
 
 	double[] trainChannel(List<Color> trainSet, List<Double> answers) {
@@ -40,12 +60,15 @@ public abstract class AbstractOLSMLR implements RegressionModel {
 	}
 
 	@Override
-	abstract public void train(List<Color> train, List<Color> answers);
+	public void calibrate(DoubleBuffer color) {
+		double[] features = getFeatures(color);
+		color.put(new double[] {getEstimate(features, beta1),
+				getEstimate(features, beta2), getEstimate(features, beta3)});
+	}
 
-	@Override
-	abstract public void calibrate(DoubleBuffer color);
-
-	abstract protected double[] getFeatures(Color color);
+	private double[] getFeatures(Color color) {
+		return getFeatures(color.toBGR());
+	}
 
 	abstract protected double[] getFeatures(DoubleBuffer color);
 }

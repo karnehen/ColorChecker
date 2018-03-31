@@ -174,10 +174,10 @@ class Main {
 		new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
 
 		List<RegressionModel> models = new ArrayList<>();
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.FIRST, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.SECOND, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.THIRD, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.IDENTITY, false));
+		models.add(RegressionFactory.createModel(Order.FIRST, false));
+		models.add(RegressionFactory.createModel(Order.SECOND, false));
+		models.add(RegressionFactory.createModel(Order.THIRD, false));
+		models.add(RegressionFactory.createModel(Order.IDENTITY, false));
 
 		List<ColorMetric> metrics = new ArrayList<>();
 		metrics.add(EuclideanRGB.create());
