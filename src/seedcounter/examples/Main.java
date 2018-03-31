@@ -34,7 +34,7 @@ import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.colormetric.HumanFriendlyRGB;
 import seedcounter.regression.RegressionFactory;
-import seedcounter.regression.RegressionFactory.ColorSpace;
+import seedcounter.ColorSpace;
 import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 
@@ -174,10 +174,10 @@ class Main {
 		new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
 
 		List<RegressionModel> models = new ArrayList<>();
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.FIRST, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.SECOND, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.THIRD, false));
-		models.add(RegressionFactory.createModel(ColorSpace.RGB, Order.IDENTITY, false));
+		models.add(RegressionFactory.createModel(Order.FIRST, false));
+		models.add(RegressionFactory.createModel(Order.SECOND, false));
+		models.add(RegressionFactory.createModel(Order.THIRD, false));
+		models.add(RegressionFactory.createModel(Order.IDENTITY, false));
 
 		List<ColorMetric> metrics = new ArrayList<>();
 		metrics.add(EuclideanRGB.create());
@@ -226,7 +226,8 @@ class Main {
 				calibrationData.put("model", name);
 				seedData.put("model", name);
 
-				Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, m);
+				Mat calibratedChecker = checker.calibrate(extractedColorChecker, m,
+						ColorSpace.RGB, ColorSpace.RGB);
 				for (ColorMetric cm : metrics) {
 					String metricName = cm.getClass().getSimpleName();
 					calibrationData.put("calibrated:" + metricName,
@@ -236,7 +237,8 @@ class Main {
 				calibratedChecker.release();
 
 				printMap(calibrationLog, calibrationData);
-				Mat calibrated = checker.calibrationBgr(image, m);
+				Mat calibrated = checker.calibrate(image, m,
+						ColorSpace.RGB, ColorSpace.RGB);
 				f.fillColorChecker(calibrated, quad);
 				Imgcodecs.imwrite(inputDirectory + "/result/" + name +
 						"_" + inputFile.getName(), calibrated);

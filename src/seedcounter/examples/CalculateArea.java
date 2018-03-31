@@ -24,7 +24,7 @@ import seedcounter.Quad;
 import seedcounter.colormetric.ColorMetric;
 import seedcounter.colormetric.EuclideanLab;
 import seedcounter.regression.RegressionFactory;
-import seedcounter.regression.RegressionFactory.ColorSpace;
+import seedcounter.ColorSpace;
 import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 
@@ -73,8 +73,7 @@ class CalculateArea {
 		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-		RegressionModel model = RegressionFactory.createModel(
-				ColorSpace.RGB, Order.FIRST, false);
+		RegressionModel model = RegressionFactory.createModel(Order.SECOND, false);
 
 		ColorMetric metric = EuclideanLab.create();
 
@@ -87,12 +86,13 @@ class CalculateArea {
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
 	
-			Mat calibratedChecker = checker.calibrationBgr(extractedColorChecker, model);
+			Mat calibratedChecker = checker.calibrate(extractedColorChecker, model,
+					ColorSpace.RGB, ColorSpace.XYZ_LINEAR);
 			System.out.println(inputFile + ": "
 					+ checker.getCellColors(calibratedChecker).calculateMetric(metric));
 			calibratedChecker.release();
 	
-			Mat calibrated = checker.calibrationBgr(image, model);
+			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.XYZ_LINEAR);
 			f.fillColorChecker(calibrated, quad);
 			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), calibrated);
 
