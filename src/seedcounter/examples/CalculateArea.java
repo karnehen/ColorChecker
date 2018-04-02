@@ -30,7 +30,7 @@ import seedcounter.regression.RegressionModel;
 
 class CalculateArea {
 	private static final List<String> INPUT_FILES = Arrays.asList(
-			/*"IMG_8628.jpg", */"IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
+			"IMG_8228.jpg", "IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
 	);
 	private static final String REFERENCE_FILE = "reference.png";
 	// targets and ranges
@@ -73,7 +73,7 @@ class CalculateArea {
 		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-		RegressionModel model = RegressionFactory.createModel(Order.SECOND, false);
+		RegressionModel model = RegressionFactory.createModel(Order.THIRD, false);
 
 		for (String inputFile : INPUT_FILES) {
 			System.out.println(inputFile);
@@ -84,14 +84,17 @@ class CalculateArea {
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-			System.out.println("before: " + Helper.getBackgroundDispersion(image));
-			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.XYZ);
-			System.out.println("after: " + Helper.getBackgroundDispersion(calibrated));
-			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_kmeans_before.png"),
-					Helper.getBackgroundSegmentation(image));
-			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_kmeans_after.png"),
-					Helper.getBackgroundSegmentation(calibrated));
+			Mat beforeSamples = Helper.getClusteringSamples(image);
+			Mat[] clusters = Helper.clusterize(beforeSamples);
+			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
+
+			Mat afterSamples = Helper.getClusteringSamples(calibrated);
 			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), calibrated);
+
+			afterSamples.release();
+			beforeSamples.release();
+			clusters[0].release();
+			clusters[1].release();
 
 			Mat mask = getMask(calibrated);
 			Mat filtered = Helper.filterByMask(calibrated, mask);

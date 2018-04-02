@@ -13,6 +13,7 @@ import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
 public class Helper {
+	private static final int CLUSTERS = 3;
 
 	public static Mat whiteThreshold(Mat image) {
 		Mat result = image.clone();
@@ -57,18 +58,20 @@ public class Helper {
 		return contours;
 	}
 
-	public static double getBackgroundDispersion(Mat image) {
-		Mat[] clusters = clusterize(image);
-		Mat samples = clusters[0];
-		Mat labels = clusters[1];
-		Mat centroids = clusters[2];
-
+	/* takes:
+	 *   source image points reshaped into (rows*cols, channels, 1),
+	 * 	 cluster labels (rows*cols, 1, 1)
+	 */
+	public static double getBackgroundDispersion(Mat samples, Mat labels) {
 		List<Map<String,Double>> clusterStatistics = new ArrayList<>();
-		for (int i = 0; i < centroids.rows(); ++i) {
+		for (int i = 0; i < CLUSTERS; ++i) {
 			clusterStatistics.add(Stream.of(
-					new SimpleEntry<>("rss", 0.0),
+					new SimpleEntry<>("second_moment", 0.0),
 					new SimpleEntry<>("count", 0.0)
 			).collect(Collectors.toMap((e) -> e.getKey(), (e) -> e.getValue())));
+			for (int col = 0; col < samples.cols(); ++col) {
+				clusterStatistics.get(i).put("sum_channel_" + col, 0.0);
+			}
 		}
 
 		for (int row = 0; row < labels.rows(); ++row) {
@@ -76,15 +79,11 @@ public class Helper {
 			Map<String,Double> map = clusterStatistics.get(label);
 
 			for (int col = 0; col < samples.cols(); ++col) {
-				map.put("rss", map.get("rss") +
-					Math.pow(centroids.get(label, col)[0] - samples.get(row, col)[0], 2));
+				map.put("second_moment", map.get("second_moment") + Math.pow(samples.get(row, col)[0], 2));
+				map.put("sum_channel_" + col, map.get("sum_channel_" + col) + samples.get(row, col)[0]);
 			}
 			map.put("count", map.get("count") + 1.0);
 		}
-
-		labels.release();
-		centroids.release();
-		samples.release();
 
 		Map<String,Double> maxCluster = clusterStatistics.get(0);
 		for (Map<String,Double> c : clusterStatistics) {
@@ -93,14 +92,26 @@ public class Helper {
 			}
 		}
 
-		return maxCluster.get("rss") / maxCluster.get("count");
+		double result = maxCluster.get("second_moment") / maxCluster.get("count");
+
+		for (int col = 0; col < samples.cols(); ++col) {
+			result -= Math.pow(maxCluster.get("sum_channel_" + col) / maxCluster.get("count"), 2);
+		}
+
+		return result;
 	}
 
-	public static Mat getBackgroundSegmentation(Mat image) {
-		Mat[] clusters = clusterize(image);
-		Mat samples = clusters[0];
-		Mat labels = clusters[1];
-		Mat centroids = clusters[2];
+	/* takes:
+	 *   source image,
+	 * 	 array {
+	 * 	 	cluster labels (rows*cols, 1, 1),
+	 * 	 	cluster centroids (CLUSTERS, channels, 1)
+	 * 	 }
+	 */
+	public static Mat getBackgroundSegmentation(Mat image, Mat[] clusters) {
+		Mat samples = getClusteringSamples(image);
+		Mat labels = clusters[0];
+		Mat centroids = clusters[1];
 
 		for (int row = 0; row < labels.rows(); ++row) {
 			int label = (int)labels.get(row, 0)[0];
@@ -116,17 +127,22 @@ public class Helper {
 		return samples;
 	}
 
-	/* returns: {
-	 * 	 source image points reshaped into (rows*cols, channels, 1),
-	 * 	 cluster labels (rows*cols, 1, 1),
-	 * 	 cluster centroids (CLUSTERS, channels, 1)
-	 */
-	private static Mat[] clusterize(Mat image) {
-		final int CLUSTERS = 3;
-		final int ATTEMPTS = 3;
-
+	// returns: source image points reshaped into (rows*cols, channels, 1)
+	public static Mat getClusteringSamples(Mat image) {
 		Mat samples = image.reshape(1, image.rows() * image.cols());
 		samples.convertTo(samples, CvType.CV_32F);
+
+		return samples;
+	}
+
+	/* takes: source image points reshaped into (rows*cols, channels, 1)
+	 * returns: {
+	 * 	 cluster labels (rows*cols, 1, 1),
+	 * 	 cluster centroids (CLUSTERS, channels, 1)
+	 * }
+	 */
+	public static Mat[] clusterize(Mat samples) {
+		final int ATTEMPTS = 3;
 
 		Mat labels = new Mat(samples.rows(), 1, CvType.CV_8U);
 		Mat centroids = new Mat(CLUSTERS, 1, CvType.CV_32F);
@@ -135,6 +151,6 @@ public class Helper {
 
 		Core.kmeans(samples, CLUSTERS, labels, criteria, ATTEMPTS, Core.KMEANS_RANDOM_CENTERS, centroids);
 
-		return new Mat[] {samples, labels, centroids};
+		return new Mat[] {labels, centroids};
 	}
 }
