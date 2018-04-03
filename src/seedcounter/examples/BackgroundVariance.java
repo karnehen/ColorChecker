@@ -20,7 +20,6 @@ import java.util.List;
 
 class BackgroundVariance {
 	private static final String INPUT_FILES = "src/seedcounter/examples/background_variance_input_files.txt";
-	private static final String OUTPUT_DIRECTORY = "src/seedcounter/examples/background_variance_output/";
 	private static final String RESULT_FILE = "src/seedcounter/examples/background_variance_results.tsv";
 	private static final String REFERENCE_FILE = "reference.png";
 	private static final Clusterizer clusterizer = new Clusterizer(2);
@@ -33,14 +32,10 @@ class BackgroundVariance {
 						!(featuresSpace == ColorSpace.RGB && targetSpace == ColorSpace.RGB)) {
 					continue;
 				}
-				File fsDir = new File(OUTPUT_DIRECTORY + model.getName() + "/" + featuresSpace.name());
-				fsDir.mkdir();
-				File tsDir = new File(fsDir.getAbsolutePath() + "/" + targetSpace.name());
-				tsDir.mkdir();
 
 				Mat calibrated = checker.calibrate(image, model, featuresSpace, targetSpace);
 				Mat afterSamples = clusterizer.getClusteringSamples(calibrated);
-				Mat[] afterClusters = clusterizer.clusterize(afterSamples);
+				calibrated.release();
 
 				double varianceChange = clusterizer.getBackgroundVariance(afterSamples, beforeClusters[0]) /
 						(clusterizer.getBackgroundVariance(beforeSamples, beforeClusters[0]) + 1e-5);
@@ -48,13 +43,6 @@ class BackgroundVariance {
 
 				outputFile.println(inputFile + "\t" + model.getName() + "\t" + featuresSpace.name() +
 						"\t" + targetSpace.name() + "\t" + varianceChange);
-				File input = new File(inputFile);
-				Imgcodecs.imwrite(tsDir.getAbsolutePath() + "/" + input.getName(),
-						clusterizer.getBackgroundSegmentation(calibrated, afterClusters));
-
-				afterClusters[0].release();
-				afterClusters[1].release();
-				calibrated.release();
 			}
 		}
 	}
@@ -85,10 +73,8 @@ class BackgroundVariance {
 		}
 		outputFile.println("file\tmodel\tfeatures_space\ttarget_space\tvariance_change");
 
-		File outputDirectory = new File(OUTPUT_DIRECTORY);
-		outputDirectory.mkdir();
-
 		for (String inputFile : inputFiles) {
+			System.out.println(inputFile);
 			Mat image = Imgcodecs.imread(inputFile,
 					Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
 
@@ -96,10 +82,9 @@ class BackgroundVariance {
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-		    for (Order order : Order.values()) {
+			for (Order order : Order.values()) {
+				System.out.println(order);
 				RegressionModel model = RegressionFactory.createModel(order);
-				File modelDirectory = new File(OUTPUT_DIRECTORY + model.getName());
-				modelDirectory.mkdir();
 
 				Mat beforeSamples = clusterizer.getClusteringSamples(image);
 				Mat[] beforeClusters = clusterizer.clusterize(beforeSamples);
