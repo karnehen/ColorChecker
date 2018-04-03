@@ -12,4 +12,8 @@ public class IdentityModel implements RegressionModel {
 	@Override
 	public void calibrate(DoubleBuffer c) {}
 
+	@Override
+	public String getName() {
+		return "Identity";
+	}
 }

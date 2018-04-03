@@ -30,7 +30,7 @@ import seedcounter.regression.RegressionModel;
 
 class CalculateArea {
 	private static final List<String> INPUT_FILES = Arrays.asList(
-			"IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
+			"IMG_8228.jpg", "IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
 	);
 	private static final String REFERENCE_FILE = "reference.png";
 	// targets and ranges
@@ -73,32 +73,22 @@ class CalculateArea {
 		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-		RegressionModel model = RegressionFactory.createModel(Order.SECOND, false);
-
-		ColorMetric metric = EuclideanLab.create();
+		RegressionModel model = RegressionFactory.createModel(Order.THIRD);
 
 		for (String inputFile : INPUT_FILES) {
 			System.out.println(inputFile);
 			Mat image = Imgcodecs.imread(inputFile,
 					Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
-	
+
 			Quad quad = f.findColorChecker(image);
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
-	
-			Mat calibratedChecker = checker.calibrate(extractedColorChecker, model,
-					ColorSpace.RGB, ColorSpace.XYZ_LINEAR);
-			System.out.println(inputFile + ": "
-					+ checker.getCellColors(calibratedChecker).calculateMetric(metric));
-			calibratedChecker.release();
-	
-			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.XYZ_LINEAR);
-			f.fillColorChecker(calibrated, quad);
+
+			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
 			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), calibrated);
 
 			Mat mask = getMask(calibrated);
 			Mat filtered = Helper.filterByMask(calibrated, mask);
-			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), filtered);
 			calibrated.release();
 	
 			Double scale = checker.pixelArea(quad);
@@ -108,6 +98,7 @@ class CalculateArea {
 			image.release();
 			mask.release();
 			extractedColorChecker.release();
+			break;
 		}
 	}
 }

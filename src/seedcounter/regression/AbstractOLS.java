@@ -66,6 +66,11 @@ public abstract class AbstractOLS implements RegressionModel {
 				getEstimate(features, beta2), getEstimate(features, beta3)});
 	}
 
+	@Override
+	public String getName() {
+		return this.getClass().getSimpleName() + (intercept ? "Intercept" : "");
+	}
+
 	private double[] getFeatures(Color color) {
 		return getFeatures(color.toBGR());
 	}

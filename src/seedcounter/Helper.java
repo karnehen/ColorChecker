@@ -1,19 +1,18 @@
 package seedcounter;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javafx.util.Pair;
 
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Scalar;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
 public class Helper {
-
 	public static Mat whiteThreshold(Mat image) {
 		Mat result = image.clone();
 		Imgproc.cvtColor(result, result, Imgproc.COLOR_BGR2GRAY);
@@ -56,5 +55,4 @@ public class Helper {
 		hierarchy.release();
 		return contours;
 	}
-
 }

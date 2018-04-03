@@ -33,7 +33,7 @@ public class ColorChecker {
 	private static final Double REAL_HEIGHT = 108.0; // millimeters
 
 	public ColorChecker(Mat image) {
-		this.checkerImage = image.clone();
+		this.checkerImage = image;
 		Integer width = image.width();
 		Integer height = image.height();
 
