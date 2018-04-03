@@ -8,4 +8,5 @@ import seedcounter.Color;
 public interface RegressionModel {
 	void train(List<Color> train, List<Color> answers);
 	void calibrate(DoubleBuffer c);
+	String getName();
 }

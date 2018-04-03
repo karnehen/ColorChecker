@@ -73,7 +73,7 @@ class CalculateArea {
 		);
 		FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-		RegressionModel model = RegressionFactory.createModel(Order.THIRD, false);
+		RegressionModel model = RegressionFactory.createModel(Order.THIRD);
 
 		for (String inputFile : INPUT_FILES) {
 			System.out.println(inputFile);
@@ -84,17 +84,8 @@ class CalculateArea {
 			Mat extractedColorChecker = quad.getTransformedField(image);
 			ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-			Mat beforeSamples = Helper.getClusteringSamples(image);
-			Mat[] clusters = Helper.clusterize(beforeSamples);
 			Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-
-			Mat afterSamples = Helper.getClusteringSamples(calibrated);
 			Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), calibrated);
-
-			afterSamples.release();
-			beforeSamples.release();
-			clusters[0].release();
-			clusters[1].release();
 
 			Mat mask = getMask(calibrated);
 			Mat filtered = Helper.filterByMask(calibrated, mask);

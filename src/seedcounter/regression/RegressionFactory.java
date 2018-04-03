@@ -1,23 +1,32 @@
 package seedcounter.regression;
 
-import seedcounter.ColorSpace;
-
 public class RegressionFactory {
-	public static RegressionModel createModel(Order order, boolean intercept) {
+	public static RegressionModel createModel(Order order) {
 		if (order == Order.IDENTITY) {
 			return new IdentityModel();
 		}
-	 	switch(order) {
-			case FIRST: return new SimpleOLS(intercept);
-			case SECOND: return new SecondOrderOLS(intercept);
-			default: return new ThirdOrderOLS(intercept);
+	 	switch(order.order) {
+			case 1: return new SimpleOLS(order.intercept);
+			case 2: return new SecondOrderOLS(order.intercept);
+			default: return new ThirdOrderOLS(order.intercept);
 		}
 	}
 
 	public enum Order {
-		IDENTITY,
-		FIRST,
-		SECOND,
-		THIRD
+		IDENTITY(0, false),
+		FIRST(1, false),
+		FIRST_INTERCEPT(1, true),
+		SECOND(2, false),
+		SECOND_INTERCEPT(2, true),
+		THIRD(3, false),
+		THIRD_INTERCEPT(3, true);
+
+		public final int order;
+		public final boolean intercept;
+
+		Order(int order, boolean intercept) {
+			this.order = order;
+			this.intercept = intercept;
+		}
 	}
 }
