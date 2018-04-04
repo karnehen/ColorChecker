@@ -146,7 +146,7 @@ public class ColorChecker {
 
 		for (Integer row = 0; row < 6; ++row) {
 			for (Integer col = 0; col < 4; ++col) {
-				List<ColoredPoint> actualColors = getSamplePoints(row, col, true);
+				List<ColoredPoint> actualColors = getSamplePoints(checkerImage, row, col, true);
 				Color referenceColor = Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col));
 				for (ColoredPoint c : actualColors) {
 					cellColors.addColor(Color.ofBGR(new double[]{c.b, c.r, c.g}), referenceColor);
@@ -158,6 +158,10 @@ public class ColorChecker {
 	}
 
 	private List<ColoredPoint> getSamplePoints(Integer row, Integer col, boolean allPoints) {
+	    return getSamplePoints(this.checkerImage, row, col, allPoints);
+    }
+
+	private List<ColoredPoint> getSamplePoints(Mat checkerImage, Integer row, Integer col, boolean allPoints) {
 		final int STEP = 10;
 		Point center = centers.get(row).get(col);
 		List<Point> surroundingPoints = getSurroundingPoints(center);
@@ -171,13 +175,13 @@ public class ColorChecker {
 			int maxY = (int) surroundingPoints.get(8).y;
 			for (int y = minY; y <= maxY; y += STEP) {
 				for (int x = minX; x <= maxX; x += STEP) {
-					double[] c = this.checkerImage.get(y, x);
+					double[] c = checkerImage.get(y, x);
 					points.add(new ColoredPoint(x, y, c[0], c[1], c[2]));
 				}
 			}
 		} else {
 			for (Point p : surroundingPoints) {
-				double[] c = this.checkerImage.get((int) p.y, (int) p.x);
+				double[] c = checkerImage.get((int) p.y, (int) p.x);
 				points.add(new ColoredPoint((int) p.x, (int) p.y, c[0], c[1], c[2]));
 			}
 		}
