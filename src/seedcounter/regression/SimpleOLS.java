@@ -1,5 +1,7 @@
 package seedcounter.regression;
 
+import seedcounter.Color;
+
 import java.nio.DoubleBuffer;
 
 public class SimpleOLS extends AbstractOLS implements RegressionModel {
@@ -9,12 +11,12 @@ public class SimpleOLS extends AbstractOLS implements RegressionModel {
 
     @Override
     protected double[] getFeatures(DoubleBuffer color) {
-        double channel1 = color.get(color.position());
-        double channel2 = color.get(color.position() + 1);
-        double channel3 = color.get(color.position() + 2);
+        double channel0 = Color.channel(color, 0);
+        double channel1 = Color.channel(color, 1);
+        double channel2 = Color.channel(color, 2);
 
         return new double[] {
-            channel1, channel2, channel3
+            channel0, channel1, channel2
         };
     }
 }

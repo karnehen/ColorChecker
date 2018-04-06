@@ -18,15 +18,15 @@ public abstract class AbstractOLS implements RegressionModel {
         this.intercept = intercept;
     }
 
-    public void train(List<Color> train, List<Color> answers) {
+    public void train(List<DoubleBuffer> train, List<DoubleBuffer> answers) {
         List<Double> answers1 = new ArrayList<>();
         List<Double> answers2 = new ArrayList<>();
         List<Double> answers3 = new ArrayList<>();
 
-        for (Color c : answers) {
-            answers1.add(c.blue());
-            answers2.add(c.green());
-            answers3.add(c.red());
+        for (DoubleBuffer c : answers) {
+            answers1.add(Color.channel(c, 0));
+            answers2.add(Color.channel(c, 1));
+            answers3.add(Color.channel(c, 2));
         }
 
         beta1 = trainChannel(train, answers1);
@@ -34,7 +34,7 @@ public abstract class AbstractOLS implements RegressionModel {
         beta3 = trainChannel(train, answers3);
     }
 
-    private double[] trainChannel(List<Color> trainSet, List<Double> answers) {
+    private double[] trainChannel(List<DoubleBuffer> trainSet, List<Double> answers) {
         double[][] trainArray = new double[answers.size()][3];
         double[] answersArray = new double[answers.size()];
 
@@ -69,10 +69,6 @@ public abstract class AbstractOLS implements RegressionModel {
     @Override
     public String getName() {
         return this.getClass().getSimpleName() + (intercept ? "Intercept" : "");
-    }
-
-    private double[] getFeatures(Color color) {
-        return getFeatures(color.toBGR());
     }
 
     abstract protected double[] getFeatures(DoubleBuffer color);

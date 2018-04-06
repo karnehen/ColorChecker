@@ -1,5 +1,6 @@
 package seedcounter;
 
+import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,8 +16,8 @@ public class CellColors {
     }
 
     public void addColor(Color actualColor, Color referenceColor) {
-        actualColors.add(new Color(actualColor));
-        referenceColors.add(new Color(referenceColor));
+        actualColors.add(actualColor);
+        referenceColors.add(referenceColor);
     }
 
     public double calculateMetric(ColorMetric metric) {

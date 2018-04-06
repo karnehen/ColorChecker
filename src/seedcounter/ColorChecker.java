@@ -60,8 +60,6 @@ public class ColorChecker {
                          ColorSpace featuresSpace, ColorSpace targetSpace) {
         Mat result = srcImage.clone();
         result.convertTo(result, CvType.CV_64FC3);
-        List<Color> train = new ArrayList<>();
-        List<Color> answers = new ArrayList<>();
 
         int channels = result.channels();
         int size = (int) result.total() * channels;
@@ -96,14 +94,16 @@ public class ColorChecker {
             }
         }
 
+        List<DoubleBuffer> train = new ArrayList<>();
+        List<DoubleBuffer> answers = new ArrayList<>();
+
         for (Integer row = 0; row < BGR_REFERENCE_COLORS.size(); ++row) {
             for (Integer col = 0; col < BGR_REFERENCE_COLORS.get(0).size(); ++col) {
                 List<ColoredPoint> samplePoints = getSamplePoints(row, col);
                 for (ColoredPoint s : samplePoints) {
-                    train.add(Color.ofBGR(ConvertColors(s.b, s.g, s.r, featuresSpace)));
-                    double[] referenceColor = BGR_REFERENCE_COLORS.get(row).get(col).val;
-                    answers.add(Color.ofBGR(ConvertColors(referenceColor[0], referenceColor[1],
-                            referenceColor[2], targetSpace)));
+                    train.add(featuresSpace.convertFromBGR(s.bgr));
+                    DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
+                    answers.add(targetSpace.convertFromBGR(referenceColor));
                 }
             }
         }
@@ -147,9 +147,9 @@ public class ColorChecker {
         for (Integer row = 0; row < 6; ++row) {
             for (Integer col = 0; col < 4; ++col) {
                 List<ColoredPoint> actualColors = getSamplePoints(checkerImage, row, col, true);
-                Color referenceColor = Color.ofBGR(BGR_REFERENCE_COLORS.get(row).get(col));
+                DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
                 for (ColoredPoint c : actualColors) {
-                    cellColors.addColor(Color.ofBGR(new double[]{c.b, c.r, c.g}), referenceColor);
+                    cellColors.addColor(new Color(c.bgr), new Color(referenceColor));
                 }
             }
         }
@@ -228,45 +228,15 @@ public class ColorChecker {
     }
 
     private class ColoredPoint {
-        public final double b;
-        public final double g;
-        public final double r;
+        public final DoubleBuffer bgr;
         public final int x;
         public final int y;
 
         ColoredPoint(int x, int y, double b, double g, double r) {
             this.x = x;
             this.y = y;
-            this.b = b;
-            this.g = g;
-            this.r = r;
+            this.bgr = DoubleBuffer.wrap(new double[] {b, g, r});
         }
     }
 
-    private double[] ConvertColors(double b, double g, double r, ColorSpace space) {
-        if (space.isLinear()) {
-            b = Color.linearizeRGB(b);
-            g = Color.linearizeRGB(g);
-            r = Color.linearizeRGB(r);
-        }
-        double[] result = {0.0, 0.0, 0.0};
-
-        if (space.isXYZ()) {
-            result[0] = r * 0.4124
-                    + g * 0.3576
-                    + b * 0.1805;
-            result[1] = r * 0.2126
-                    + g * 0.7152
-                    + b * 0.0722;
-            result[2] = r * 0.0193
-                    + g * 0.1192
-                    + b * 0.9505;
-        } else {
-            result[0] = b;
-            result[1] = g;
-            result[2] = r;
-        }
-
-        return result;
-    }
 }

@@ -7,7 +7,7 @@ import seedcounter.Color;
 
 public class IdentityModel implements RegressionModel {
     @Override
-    public void train(List<Color> train, List<Color> answers) {}
+    public void train(List<DoubleBuffer> train, List<DoubleBuffer> answers) {}
 
     @Override
     public void calibrate(DoubleBuffer c) {}
