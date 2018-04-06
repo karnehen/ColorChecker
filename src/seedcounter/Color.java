@@ -13,15 +13,6 @@ public class Color {
     private final double a;
     private final double b;
 
-    private Color(double red, double green, double blue) {
-        this.bgr = DoubleBuffer.wrap(new double[] {blue, green, red});
-
-        Scalar lab = bgrToLabScalar(new Scalar(blue, green, red));
-        this.lightness = lab.val[0];
-        this.a = lab.val[1];
-        this.b = lab.val[2];
-    }
-
     public Color(DoubleBuffer bgr) {
         this.bgr = bgr;
 

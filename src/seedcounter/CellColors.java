@@ -1,6 +1,5 @@
 package seedcounter;
 
-import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.List;
 

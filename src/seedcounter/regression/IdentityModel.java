@@ -3,8 +3,6 @@ package seedcounter.regression;
 import java.nio.DoubleBuffer;
 import java.util.List;
 
-import seedcounter.Color;
-
 public class IdentityModel implements RegressionModel {
     @Override
     public void train(List<DoubleBuffer> train, List<DoubleBuffer> answers) {}

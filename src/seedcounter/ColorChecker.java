@@ -67,31 +67,7 @@ public class ColorChecker {
         result.get(0, 0, temp);
 
         for (int i = 0; i + channels < size; i += channels) {
-            double b = temp[i];
-            double g = temp[i + 1];
-            double r = temp[i + 2];
-
-            if (featuresSpace.isLinear()) {
-                b = Color.linearizeRGB(b);
-                g = Color.linearizeRGB(g);
-                r = Color.linearizeRGB(r);
-            }
-
-            if (featuresSpace.isXYZ()) {
-                temp[i] = r * 0.4124
-                        + g * 0.3576
-                        + b * 0.1805;
-                temp[i + 1] = r * 0.2126
-                        + g * 0.7152
-                        + b * 0.0722;
-                temp[i + 2] = r * 0.0193
-                        + g * 0.1192
-                        + b * 0.9505;
-            } else {
-                temp[i] = b;
-                temp[i + 1] = g;
-                temp[i + 2] = r;
-            }
+            featuresSpace.convertFromBGR(DoubleBuffer.wrap(temp, i, channels), true);
         }
 
         List<DoubleBuffer> train = new ArrayList<>();
@@ -101,9 +77,9 @@ public class ColorChecker {
             for (Integer col = 0; col < BGR_REFERENCE_COLORS.get(0).size(); ++col) {
                 List<ColoredPoint> samplePoints = getSamplePoints(row, col);
                 for (ColoredPoint s : samplePoints) {
-                    train.add(featuresSpace.convertFromBGR(s.bgr));
+                    train.add(featuresSpace.convertFromBGR(s.bgr, false));
                     DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
-                    answers.add(targetSpace.convertFromBGR(referenceColor));
+                    answers.add(targetSpace.convertFromBGR(referenceColor, false));
                 }
             }
         }
@@ -120,19 +96,7 @@ public class ColorChecker {
         }
 
         for (int i = 0; i + channels < size; i += channels) {
-            if (targetSpace.isXYZ()) {
-                double x = temp[i];
-                double y = temp[i + 1];
-                double z = temp[i + 2];
-                temp[i] = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
-                temp[i + 1] = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z;
-                temp[i + 2] = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z;
-            }
-            if (targetSpace.isLinear()) {
-                temp[i] = Color.inverseLinearizeRGB(temp[i]);
-                temp[i + 1] = Color.inverseLinearizeRGB(temp[i + 1]);
-                temp[i + 2] = Color.inverseLinearizeRGB(temp[i + 2]);
-            }
+            targetSpace.convertToBGR(DoubleBuffer.wrap(temp, i, channels));
         }
 
         result.put(0, 0, temp);
