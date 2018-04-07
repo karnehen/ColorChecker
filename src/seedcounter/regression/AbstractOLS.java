@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
-import seedcounter.Color;
+import seedcounter.colormetric.Color;
 
 public abstract class AbstractOLS implements RegressionModel {
     private final boolean intercept;

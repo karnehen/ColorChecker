@@ -21,8 +21,8 @@ public class RegressionFactory {
         THIRD(3, false),
         THIRD_INTERCEPT(3, true);
 
-        public final int order;
-        public final boolean intercept;
+        final int order;
+        final boolean intercept;
 
         Order(int order, boolean intercept) {
             this.order = order;

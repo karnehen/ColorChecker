@@ -1,4 +1,4 @@
-package seedcounter;
+package seedcounter.colorchecker;
 
 import org.opencv.features2d.Feature2D;
 

@@ -1,7 +1,5 @@
 package seedcounter.colormetric;
 
-import seedcounter.Color;
-
 public class EuclideanLab implements ColorMetric {
     public static EuclideanLab create() {
         return new EuclideanLab();
@@ -15,5 +13,4 @@ public class EuclideanLab implements ColorMetric {
                 Math.pow(c1.b() - c2.b(), 2.0)
             );
     }
-
 }

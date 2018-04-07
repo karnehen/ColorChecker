@@ -1,4 +1,4 @@
-package seedcounter;
+package seedcounter.common;
 
 import java.util.List;
 

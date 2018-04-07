@@ -1,8 +1,9 @@
-package seedcounter;
+package seedcounter.colormetric;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import seedcounter.colormetric.Color;
 import seedcounter.colormetric.ColorMetric;
 
 public class CellColors {

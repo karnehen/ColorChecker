@@ -1,4 +1,6 @@
-package seedcounter;
+package seedcounter.regression;
+
+import seedcounter.colormetric.Color;
 
 import java.nio.DoubleBuffer;
 
@@ -8,15 +10,37 @@ public enum ColorSpace {
     XYZ(true, false),
     XYZ_LINEAR(true, true);
 
-    private boolean isXYZ;
-    private boolean isLinear;
+    private final boolean isXYZ;
+    private final boolean isLinear;
 
     ColorSpace(boolean isXYZ, boolean isLinear) {
         this.isXYZ = isXYZ;
         this.isLinear = isLinear;
     }
 
-    DoubleBuffer convertFromBGR(DoubleBuffer color, boolean inplace) {
+    private static double linearizeRGB(double channelColor) {
+        channelColor /= 255.0;
+        if (channelColor > 0.04045) {
+            channelColor = Math.pow((channelColor + 0.055) / 1.055, 2.4);
+        } else {
+            channelColor /= 12.92;
+        }
+
+        return channelColor * 100.0;
+    }
+
+    private static double inverseLinearizeRGB(double channelColor) {
+        channelColor /= 100.0;
+        if (channelColor > 0.0031308) {
+            channelColor = 1.055 * Math.pow(channelColor, 1.0 / 2.4) - 0.055;
+        } else {
+            channelColor *= 12.92;
+        }
+
+        return channelColor * 255.0;
+    }
+
+    public DoubleBuffer convertFromBGR(DoubleBuffer color, boolean inplace) {
         if (!inplace) {
             color = DoubleBuffer.wrap(new double[] {Color.channel(color, 0),
                     Color.channel(color, 1), Color.channel(color, 2)});
@@ -27,9 +51,9 @@ public enum ColorSpace {
         double r = Color.channel(color, 2);
 
         if (isLinear) {
-            b = Color.linearizeRGB(b);
-            g = Color.linearizeRGB(g);
-            r = Color.linearizeRGB(r);
+            b = linearizeRGB(b);
+            g = linearizeRGB(g);
+            r = linearizeRGB(r);
         }
 
         if (isXYZ) {
@@ -45,7 +69,7 @@ public enum ColorSpace {
         return color;
     }
 
-    void convertToBGR(DoubleBuffer color) {
+    public void convertToBGR(DoubleBuffer color) {
         if (isXYZ) {
             double x = Color.channel(color, 0);
             double y = Color.channel(color, 1);
@@ -55,9 +79,9 @@ public enum ColorSpace {
             color.put(color.position() + 2, 3.2404542 * x - 1.5371385 * y - 0.4985314 * z);
         }
         if (isLinear) {
-            color.put(color.position(), Color.inverseLinearizeRGB(Color.channel(color, 0)));
-            color.put(color.position() + 1, Color.inverseLinearizeRGB(Color.channel(color, 1)));
-            color.put(color.position() + 2, Color.inverseLinearizeRGB(Color.channel(color, 2)));
+            color.put(color.position(), inverseLinearizeRGB(Color.channel(color, 0)));
+            color.put(color.position() + 1, inverseLinearizeRGB(Color.channel(color, 1)));
+            color.put(color.position() + 2, inverseLinearizeRGB(Color.channel(color, 2)));
         }
     }
 }

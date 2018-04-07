@@ -1,4 +1,4 @@
-package seedcounter;
+package seedcounter.colorchecker;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -22,6 +22,7 @@ import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Feature2D;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import seedcounter.common.Quad;
 
 
 public class FindColorChecker {

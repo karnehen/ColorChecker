@@ -24,17 +24,17 @@ import org.opencv.imgproc.Imgproc;
 
 import org.opencv.xfeatures2d.SIFT;
 import org.opencv.xfeatures2d.SURF;
-import seedcounter.ColorChecker;
-import seedcounter.FindColorChecker;
-import seedcounter.Helper;
-import seedcounter.MatchingModel;
-import seedcounter.Quad;
+import seedcounter.colorchecker.ColorChecker;
+import seedcounter.colorchecker.FindColorChecker;
+import seedcounter.common.Helper;
+import seedcounter.colorchecker.MatchingModel;
+import seedcounter.common.Quad;
 import seedcounter.colormetric.ColorMetric;
 import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.colormetric.HumanFriendlyRGB;
 import seedcounter.regression.RegressionFactory;
-import seedcounter.ColorSpace;
+import seedcounter.regression.ColorSpace;
 import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 

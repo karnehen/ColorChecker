@@ -1,7 +1,5 @@
 package seedcounter.colormetric;
 
-import seedcounter.Color;
-
 public class HumanFriendlyRGB implements ColorMetric {
     public static ColorMetric create() {
         return new HumanFriendlyRGB();

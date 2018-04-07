@@ -6,7 +6,12 @@ import org.opencv.core.Mat;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.xfeatures2d.SIFT;
-import seedcounter.*;
+import seedcounter.colorchecker.ColorChecker;
+import seedcounter.colorchecker.FindColorChecker;
+import seedcounter.colorchecker.MatchingModel;
+import seedcounter.common.Clusterizer;
+import seedcounter.common.Quad;
+import seedcounter.regression.ColorSpace;
 import seedcounter.regression.IdentityModel;
 import seedcounter.regression.RegressionFactory;
 import seedcounter.regression.RegressionFactory.Order;
@@ -25,7 +30,7 @@ class BackgroundVariance {
     private static final Clusterizer clusterizer = new Clusterizer(2);
 
     private static void iterateColorspaces(String inputFile, PrintWriter outputFile, RegressionModel model, Mat image,
-                                      ColorChecker checker, Mat beforeSamples, Mat[] beforeClusters) {
+                                           ColorChecker checker, Mat beforeSamples, Mat[] beforeClusters) {
         for (ColorSpace featuresSpace : ColorSpace.values()) {
             for (ColorSpace targetSpace : ColorSpace.values()) {
                 if (model.getClass() == IdentityModel.class &&

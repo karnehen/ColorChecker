@@ -1,4 +1,4 @@
-package seedcounter;
+package seedcounter.colorchecker;
 
 import java.nio.DoubleBuffer;
 import java.util.ArrayList;
@@ -12,6 +12,10 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+import seedcounter.colormetric.CellColors;
+import seedcounter.common.Quad;
+import seedcounter.colormetric.Color;
+import seedcounter.regression.ColorSpace;
 import seedcounter.regression.RegressionModel;
 
 public class ColorChecker {
@@ -75,9 +79,9 @@ public class ColorChecker {
 
         for (Integer row = 0; row < BGR_REFERENCE_COLORS.size(); ++row) {
             for (Integer col = 0; col < BGR_REFERENCE_COLORS.get(0).size(); ++col) {
-                List<ColoredPoint> samplePoints = getSamplePoints(row, col);
-                for (ColoredPoint s : samplePoints) {
-                    train.add(featuresSpace.convertFromBGR(s.bgr, false));
+                List<DoubleBuffer> samplePoints = getSamplePoints(row, col);
+                for (DoubleBuffer s : samplePoints) {
+                    train.add(featuresSpace.convertFromBGR(s, false));
                     DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
                     answers.add(targetSpace.convertFromBGR(referenceColor, false));
                 }
@@ -110,10 +114,10 @@ public class ColorChecker {
 
         for (Integer row = 0; row < 6; ++row) {
             for (Integer col = 0; col < 4; ++col) {
-                List<ColoredPoint> actualColors = getSamplePoints(checkerImage, row, col, true);
+                List<DoubleBuffer> actualColors = getSamplePoints(checkerImage, row, col, true);
                 DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
-                for (ColoredPoint c : actualColors) {
-                    cellColors.addColor(new Color(c.bgr), new Color(referenceColor));
+                for (DoubleBuffer color : actualColors) {
+                    cellColors.addColor(new Color(color), new Color(referenceColor));
                 }
             }
         }
@@ -121,32 +125,44 @@ public class ColorChecker {
         return cellColors;
     }
 
-    private List<ColoredPoint> getSamplePoints(Integer row, Integer col) {
+    private List<DoubleBuffer> getSamplePoints(Integer row, Integer col) {
         return getSamplePoints(this.checkerImage, row, col, false);
     }
 
-    private List<ColoredPoint> getSamplePoints(Mat checkerImage, Integer row, Integer col, boolean allPoints) {
+    private List<DoubleBuffer> getSamplePoints(Mat checkerImage, Integer row, Integer col, boolean allPoints) {
         final int STEP = 10;
+        final int CHANNELS = 3;
+
         Point center = centers.get(row).get(col);
         List<Point> surroundingPoints = getSurroundingPoints(center);
 
-        List<ColoredPoint> points = new ArrayList<>();
+        List<DoubleBuffer> points = new ArrayList<>();
+        double[] result;
 
         if (allPoints) {
             int minX = (int) surroundingPoints.get(0).x;
             int minY = (int) surroundingPoints.get(0).y;
             int maxX = (int) surroundingPoints.get(8).x;
             int maxY = (int) surroundingPoints.get(8).y;
+            int xSize = (maxX - minX + 1) / STEP;
+            int ySize = (maxY - minY + 1) / STEP;
+            result = new double[xSize * ySize * CHANNELS];
+
             for (int y = minY; y <= maxY; y += STEP) {
                 for (int x = minX; x <= maxX; x += STEP) {
-                    double[] c = checkerImage.get(y, x);
-                    points.add(new ColoredPoint(x, y, c[0], c[1], c[2]));
+                    double[] color = checkerImage.get(y, x);
+                    int index = y * xSize + x;
+                    System.arraycopy(color, 0, result, index * CHANNELS, CHANNELS);
+                    points.add(DoubleBuffer.wrap(result, index * CHANNELS, CHANNELS));
                 }
             }
         } else {
-            for (Point p : surroundingPoints) {
-                double[] c = checkerImage.get((int) p.y, (int) p.x);
-                points.add(new ColoredPoint((int) p.x, (int) p.y, c[0], c[1], c[2]));
+            result = new double[surroundingPoints.size() * CHANNELS];
+            for (int i = 0; i < surroundingPoints.size(); ++i) {
+                Point p = surroundingPoints.get(i);
+                double[] color = checkerImage.get((int) p.y, (int) p.x);
+                System.arraycopy(color, 0, result, i * 3, CHANNELS);
+                points.add(DoubleBuffer.wrap(result, i*CHANNELS, CHANNELS));
             }
         }
 
@@ -190,17 +206,4 @@ public class ColorChecker {
                 new Point(center.x + this.xScale, center.y + this.yScale)
         );
     }
-
-    private class ColoredPoint {
-        public final DoubleBuffer bgr;
-        public final int x;
-        public final int y;
-
-        ColoredPoint(int x, int y, double b, double g, double r) {
-            this.x = x;
-            this.y = y;
-            this.bgr = DoubleBuffer.wrap(new double[] {b, g, r});
-        }
-    }
-
 }

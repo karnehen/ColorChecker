@@ -1,6 +1,6 @@
 package seedcounter.regression;
 
-import seedcounter.Color;
+import seedcounter.colormetric.Color;
 
 import java.nio.DoubleBuffer;
 
