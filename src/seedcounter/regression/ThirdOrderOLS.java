@@ -1,27 +1,29 @@
 package seedcounter.regression;
 
+import seedcounter.colormetric.Color;
+
 import java.nio.DoubleBuffer;
 
 public class ThirdOrderOLS extends AbstractOLS implements RegressionModel {
-	public ThirdOrderOLS(boolean intercept) {
-		super(intercept);
-	}
+    public ThirdOrderOLS(boolean intercept) {
+        super(intercept);
+    }
 
-	@Override
-	protected double[] getFeatures(DoubleBuffer color) {
-		double channel1 = color.get(color.position());
-		double channel2 = color.get(color.position() + 1);
-		double channel3 = color.get(color.position() + 2);
+    @Override
+    protected double[] getFeatures(DoubleBuffer color) {
+        double channel0 = Color.channel(color, 0);
+        double channel1 = Color.channel(color, 1);
+        double channel2 = Color.channel(color, 2);
 
-		return new double[] {
-			channel1, channel2, channel3,
-			channel1 * channel1, channel1 * channel2, channel1 * channel3,
-			channel2 * channel2, channel2 * channel3, channel3 * channel3,
-			channel1 * channel1 * channel1, channel1 * channel1 * channel2,
-			channel1 * channel1 * channel3, channel1 * channel2 * channel2,
-			channel1 * channel2 * channel3, channel1 * channel3 * channel3,
-			channel2 * channel2 * channel2, channel2 * channel2 * channel3,
-			channel2 * channel3 * channel3, channel3 * channel3 * channel3,
-		};
-	}
+        return new double[] {
+            channel0, channel1, channel2,
+            channel0 * channel0, channel0 * channel1, channel0 * channel2,
+            channel1 * channel1, channel1 * channel2, channel2 * channel2,
+            channel0 * channel0 * channel0, channel0 * channel0 * channel1,
+            channel0 * channel0 * channel2, channel0 * channel1 * channel1,
+            channel0 * channel1 * channel2, channel0 * channel2 * channel2,
+            channel1 * channel1 * channel1, channel1 * channel1 * channel2,
+            channel1 * channel2 * channel2, channel2 * channel2 * channel2,
+        };
+    }
 }
