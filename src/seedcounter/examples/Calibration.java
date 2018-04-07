@@ -9,7 +9,6 @@ import org.opencv.xfeatures2d.SIFT;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
-import seedcounter.common.Clusterizer;
 import seedcounter.common.Quad;
 import seedcounter.regression.ColorSpace;
 import seedcounter.regression.RegressionFactory;
@@ -20,21 +19,19 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-class BackgroundSegmentation {
+class Calibration {
     private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
-    private static final String RESULT_DIR = "src/seedcounter/examples/background_segmentation_results";
+    private static final String RESULT_DIR = "src/seedcounter/examples/calibration_results";
     private static final String REFERENCE_FILE = "reference.png";
-    private static final Clusterizer clusterizer = new Clusterizer(3);
 
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
         MatchingModel MATCHING_MODEL = new MatchingModel(
-            SIFT.create(), SIFT.create(),
-            DescriptorMatcher.FLANNBASED, 0.7f
+                SIFT.create(), SIFT.create(),
+                DescriptorMatcher.FLANNBASED, 0.7f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
-        RegressionModel model = RegressionFactory.createModel(Order.THIRD);
 
         List<String> inputFiles = null;
         try {
@@ -46,6 +43,8 @@ class BackgroundSegmentation {
 
         File resultDirectory = new File(RESULT_DIR);
         resultDirectory.mkdir();
+
+        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
 
         for (String fileName : inputFiles) {
             System.out.println(fileName);
@@ -60,16 +59,9 @@ class BackgroundSegmentation {
             image.release();
             extractedColorChecker.release();
 
-            Mat samples = clusterizer.getClusteringSamples(calibrated);
-            Mat[] clusters = clusterizer.clusterize(samples);
-            Mat segmentedBackground = clusterizer.getBackgroundSegmentation(calibrated, clusters);
-            calibrated.release();
-            samples.release();
-
             File inputFile = new File(fileName);
-            Imgcodecs.imwrite(resultDirectory.getAbsolutePath() + "/" + inputFile.getName(),
-                    segmentedBackground);
-            segmentedBackground.release();
+            Imgcodecs.imwrite(resultDirectory.getAbsolutePath() + "/" + inputFile.getName(), calibrated);
+            calibrated.release();
         }
     }
 }

@@ -27,7 +27,7 @@ import java.io.PrintWriter;
 import java.util.List;
 
 class ColorCheckerMetric {
-    private static final String INPUT_FILES = "src/seedcounter/examples/color_metric_input_files.txt";
+    private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
     private static final String RESULT_FILE = "src/seedcounter/examples/color_metric_results.tsv";
     private static final String REFERENCE_FILE = "reference.png";
 

@@ -24,7 +24,7 @@ import java.io.PrintWriter;
 import java.util.List;
 
 class BackgroundVariance {
-    private static final String INPUT_FILES = "src/seedcounter/examples/background_variance_input_files.txt";
+    private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
     private static final String RESULT_FILE = "src/seedcounter/examples/background_variance_results.tsv";
     private static final String REFERENCE_FILE = "reference.png";
     private static final Clusterizer clusterizer = new Clusterizer(2);
