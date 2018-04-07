@@ -1,10 +1,15 @@
 package seedcounter.examples;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 
 import javafx.util.Pair;
 
+import org.apache.commons.io.FileUtils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -27,9 +32,8 @@ import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 
 class CalculateArea {
-    private static final List<String> INPUT_FILES = Arrays.asList(
-            "IMG_8228.jpg", "IMG_8182.jpg", "IMG_8228.jpg", "IMG_8371.jpg", "IMG_8372.jpg"
-    );
+    private static final String INPUT_FILES = "src/seedcounter/examples/calculate_area_input_files.txt";
+    private static final String RESULT_FILE = "src/seedcounter/examples/calculate_area_results.txt";
     private static final String REFERENCE_FILE = "reference.png";
     // targets and ranges
     private static final List<Pair<Scalar, Scalar>> POTATO_TYPES = Arrays.asList(
@@ -38,14 +42,14 @@ class CalculateArea {
             new Pair<>(new Scalar(45, 170, 220), new Scalar(30, 30, 30))
         );
 
-    private static void printSeeds(Mat image, Double scale) {
+    private static void printSeeds(PrintWriter outputFile, Mat image, Double scale) {
         List<MatOfPoint> contours = Helper.getContours(image);
         Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
 
         for (int i = 0; i < contours.size(); ++i) {
             MatOfPoint contour = contours.get(i);
             Double area = scale * Imgproc.contourArea(contour);
-            System.out.println("Object: " + i + "; Area: " + area);
+            outputFile.println("Object: " + i + "; Area: " + area);
             contour.release();
         }
 
@@ -71,11 +75,28 @@ class CalculateArea {
         );
         FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 
-        RegressionModel model = RegressionFactory.createModel(Order.THIRD);
+        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
 
-        for (String inputFile : INPUT_FILES) {
-            System.out.println(inputFile);
-            Mat image = Imgcodecs.imread(inputFile,
+        List<String> inputFiles = null;
+        try {
+            inputFiles = FileUtils.readLines(new File(INPUT_FILES), "utf-8");
+        } catch (IOException e) {
+            System.out.println("Can't read from file " + INPUT_FILES);
+            System.exit(1);
+        }
+
+        PrintWriter outputFile = null;
+        try {
+            outputFile = new PrintWriter(RESULT_FILE);
+        } catch (FileNotFoundException e) {
+            System.out.println("Can't write to file " + RESULT_FILE);
+            System.exit(1);
+        }
+
+        for (String fileName : inputFiles) {
+            System.out.println(fileName);
+            outputFile.println(fileName);
+            Mat image = Imgcodecs.imread(fileName,
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
 
             Quad quad = f.findColorChecker(image);
@@ -83,19 +104,19 @@ class CalculateArea {
             ColorChecker checker = new ColorChecker(extractedColorChecker);
 
             Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-            Imgcodecs.imwrite(inputFile.replaceAll("\\..+", "_output.png"), calibrated);
+            image.release();
 
             Mat mask = getMask(calibrated);
             Mat filtered = Helper.filterByMask(calibrated, mask);
             calibrated.release();
+            mask.release();
 
             Double scale = checker.pixelArea(quad);
-            printSeeds(filtered, scale);
-
+            printSeeds(outputFile, filtered, scale);
             filtered.release();
-            image.release();
-            mask.release();
             extractedColorChecker.release();
         }
+
+        outputFile.close();
     }
 }

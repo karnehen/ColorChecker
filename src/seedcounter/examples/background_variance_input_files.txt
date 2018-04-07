@@ -1,1 +1,1 @@
-src/seedcounter/examples/background_variance.jpg
+src/seedcounter/examples/seeds.jpg

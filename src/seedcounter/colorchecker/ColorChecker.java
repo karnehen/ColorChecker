@@ -144,16 +144,17 @@ public class ColorChecker {
             int minY = (int) surroundingPoints.get(0).y;
             int maxX = (int) surroundingPoints.get(8).x;
             int maxY = (int) surroundingPoints.get(8).y;
-            int xSize = (maxX - minX + 1) / STEP;
-            int ySize = (maxY - minY + 1) / STEP;
+            int xSize = (maxX - minX) / STEP + 1;
+            int ySize = (maxY - minY) / STEP + 1;
             result = new double[xSize * ySize * CHANNELS];
+            int index = 0;
 
             for (int y = minY; y <= maxY; y += STEP) {
                 for (int x = minX; x <= maxX; x += STEP) {
                     double[] color = checkerImage.get(y, x);
-                    int index = y * xSize + x;
-                    System.arraycopy(color, 0, result, index * CHANNELS, CHANNELS);
-                    points.add(DoubleBuffer.wrap(result, index * CHANNELS, CHANNELS));
+                    System.arraycopy(color, 0, result, index, CHANNELS);
+                    points.add(DoubleBuffer.wrap(result, index, CHANNELS));
+                    index += CHANNELS;
                 }
             }
         } else {
