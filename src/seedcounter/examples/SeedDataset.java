@@ -1,45 +1,34 @@
 package seedcounter.examples;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.util.*;
-
 import javafx.util.Pair;
-
-import javax.activation.MimetypesFileTypeMap;
-
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
-import org.opencv.core.Range;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
+import org.apache.commons.io.FileUtils;
+import org.opencv.core.*;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-
 import org.opencv.xfeatures2d.SIFT;
-import org.opencv.xfeatures2d.SURF;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
-import seedcounter.common.Helper;
 import seedcounter.colorchecker.MatchingModel;
-import seedcounter.common.Quad;
 import seedcounter.colormetric.ColorMetric;
 import seedcounter.colormetric.EuclideanLab;
 import seedcounter.colormetric.EuclideanRGB;
-import seedcounter.colormetric.HumanFriendlyRGB;
-import seedcounter.regression.RegressionFactory;
+import seedcounter.common.Helper;
+import seedcounter.common.Quad;
 import seedcounter.regression.ColorSpace;
+import seedcounter.regression.RegressionFactory;
 import seedcounter.regression.RegressionFactory.Order;
 import seedcounter.regression.RegressionModel;
 
-class Main {
-    private static final String INPUT_DIRECTORY = "../../photos/SPH-L900";
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
+
+class SeedDataset {
+    private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
+    private static final String RESULT_DIR = "src/seedcounter/examples/seed_dataset_results";
     private static final String REFERENCE_FILE = "reference.png";
     // targets and ranges
     private static final List<Pair<Scalar, Scalar>> SEED_TYPES = Arrays.asList(
@@ -92,22 +81,17 @@ class Main {
             }
         }
 
-        int counter = 0;
-
         for (int y = minY; y <= maxY; ++y) {
             for (int x = minX; x <= maxX; ++x) {
                 if (seedBuffer.get(y, x)[0] > 0.0) {
                     double[] color = image.get(y, x);
                     if (color[0] + color[1] + color[2] > 0.0) {
-                        if (counter % 10 == 0) {
-                            data.put("x", String.valueOf(x));
-                            data.put("y", String.valueOf(y));
-                            data.put("blue", String.valueOf(color[0]));
-                            data.put("green", String.valueOf(color[1]));
-                            data.put("red", String.valueOf(color[2]));
-                            printMap(writer, data);
-                        }
-                        counter += 1;
+                        data.put("x", String.valueOf(x));
+                        data.put("y", String.valueOf(y));
+                        data.put("blue", String.valueOf(color[0]));
+                        data.put("green", String.valueOf(color[1]));
+                        data.put("red", String.valueOf(color[2]));
+                        printMap(writer, data);
                     }
                 }
             }
@@ -138,7 +122,11 @@ class Main {
         Mat filtered = Helper.filterByMask(image, mask);
         Range rows = new Range(filtered.rows() / 4, 3 * filtered.rows() / 4);
         Range cols = new Range(filtered.cols() / 4, 3 * filtered.cols() / 4);
-        return new Mat(filtered, rows, cols);
+
+        Mat result = new Mat(filtered, rows, cols);
+        filtered.release();
+
+        return result;
     }
 
     private static Mat getMask(Mat image) {
@@ -152,6 +140,7 @@ class Main {
         Imgproc.morphologyEx(whiteMask, whiteMask, Imgproc.MORPH_CLOSE, kernel);
 
         Core.bitwise_and(mask, whiteMask, mask);
+        whiteMask.release();
         kernel.release();
 
         return mask;
@@ -160,103 +149,83 @@ class Main {
     public static void main(String[] args) throws FileNotFoundException {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-         List<MatchingModel> MATCHING_MODELS = Arrays.asList(
-                new MatchingModel(SURF.create(), SURF.create(),
-                        DescriptorMatcher.FLANNBASED, 0.7f),
-                new MatchingModel(SIFT.create(), SIFT.create(),
-                        DescriptorMatcher.FLANNBASED, 0.7f),
-                new MatchingModel(ORB.create(), ORB.create(),
-                        DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f)
+        MatchingModel matchingModel = new MatchingModel(
+                SIFT.create(), SIFT.create(),
+                DescriptorMatcher.FLANNBASED, 0.7f
         );
-        FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODELS.get(1));
+        FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
-        File inputDirectory = new File(INPUT_DIRECTORY);
-        new File(inputDirectory.getAbsolutePath() + "/result").mkdir();
+        List<String> inputFiles = null;
+        try {
+            inputFiles = FileUtils.readLines(new File(INPUT_FILES), "utf-8");
+        } catch (IOException e) {
+            System.out.println("Can't read from file " + INPUT_FILES);
+            System.exit(1);
+        }
 
-        List<RegressionModel> models = new ArrayList<>();
-        models.add(RegressionFactory.createModel(Order.FIRST));
-        models.add(RegressionFactory.createModel(Order.SECOND));
-        models.add(RegressionFactory.createModel(Order.THIRD));
-        models.add(RegressionFactory.createModel(Order.IDENTITY));
+        File resultDirectory = new File(RESULT_DIR);
+        resultDirectory.mkdir();
+
+        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
 
         List<ColorMetric> metrics = new ArrayList<>();
         metrics.add(EuclideanRGB.create());
-        metrics.add(HumanFriendlyRGB.create());
         metrics.add(EuclideanLab.create());
 
-        PrintWriter calibrationLog = new PrintWriter(
-                inputDirectory.getAbsolutePath() + "/calibration_log.txt");
+        PrintWriter calibrationLog = new PrintWriter(RESULT_DIR + "/calibration_log.txt");
         Map<String, String> calibrationData = new HashMap<>();
         calibrationData.put("header", "1");
-        PrintWriter seedLog = new PrintWriter(
-                inputDirectory.getAbsolutePath() + "/seed_log.txt");
+
+        PrintWriter seedLog = new PrintWriter(RESULT_DIR + "/seed_log.txt");
         Map<String, String> seedData = new HashMap<>();
         seedData.put("header", "1");
 
-        for (File inputFile : Objects.requireNonNull(inputDirectory.listFiles())) {
-            String mimetype = new MimetypesFileTypeMap().getContentType(inputFile);
-            String type = mimetype.split("/")[0];
-            if (!type.equals("image")) {
-                continue;
-            }
-            System.out.println(inputFile.getName());
-            calibrationData.put("file", inputFile.getName());
-            seedData.put("file", inputFile.getName());
-
-            Mat image = Imgcodecs.imread(inputFile.getAbsolutePath(),
+        for (String fileName : inputFiles) {
+            System.out.println(fileName);
+            Mat image = Imgcodecs.imread(fileName,
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
-            Mat mask = new Mat(image.rows(), image.cols(), CvType.CV_8UC1, new Scalar(0));
+            calibrationData.put("file", fileName);
+            seedData.put("file", fileName);
 
-            Quad quad = f.findColorChecker(image);
+            Quad quad = findColorChecker.findColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
             ColorChecker checker = new ColorChecker(extractedColorChecker);
-            Imgcodecs.imwrite(inputDirectory + "/result/" + "extracted_"
-                    + inputFile.getName(), checker.drawSamplePoints());
             Double scale = checker.pixelArea(quad);
             calibrationData.put("scale", scale.toString());
+
             for (ColorMetric cm : metrics) {
                 String metricName = cm.getClass().getSimpleName();
                 calibrationData.put("source:" + metricName,
                         String.valueOf(checker.getCellColors(extractedColorChecker).
                                 calculateMetric(cm)));
             }
-            for (RegressionModel m : models) {
-                String name = m.getClass().getSimpleName();
-                System.out.println(name);
-                calibrationData.put("model", name);
-                seedData.put("model", name);
 
-                Mat calibratedChecker = checker.calibrate(extractedColorChecker, m,
-                        ColorSpace.RGB, ColorSpace.RGB);
-                for (ColorMetric cm : metrics) {
-                    String metricName = cm.getClass().getSimpleName();
+            String name = model.getClass().getSimpleName();
+            calibrationData.put("model", name);
+            seedData.put("model", name);
+
+            Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
+            for (ColorMetric cm : metrics) {
+                String metricName = cm.getClass().getSimpleName();
                     calibrationData.put("calibrated:" + metricName,
                             String.valueOf(checker.getCellColors(calibratedChecker).
                                     calculateMetric(cm)));
-                }
-                calibratedChecker.release();
-
-                printMap(calibrationLog, calibrationData);
-                Mat calibrated = checker.calibrate(image, m,
-                        ColorSpace.RGB, ColorSpace.RGB);
-                f.fillColorChecker(calibrated, quad);
-                Imgcodecs.imwrite(inputDirectory + "/result/" + name +
-                        "_" + inputFile.getName(), calibrated);
-
-                if (!name.equals("IdentityModel")) {
-                    mask = Main.getMask(calibrated);
-                }
-                Mat filtered = filterByMask(calibrated, mask);
-                calibrated.release();
-
-                Imgcodecs.imwrite(inputDirectory + "/result/" + name +
-                        "_filtered_" + inputFile.getName(), filtered);
-                printSeeds(filtered, seedLog, seedData, scale);
-                filtered.release();
             }
+            calibratedChecker.release();
+
+            printMap(calibrationLog, calibrationData);
+            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             image.release();
-            mask.release();
             extractedColorChecker.release();
+            findColorChecker.fillColorChecker(calibrated, quad);
+
+            Mat mask = getMask(calibrated);
+            Mat filtered = filterByMask(calibrated, mask);
+            calibrated.release();
+            mask.release();
+
+            printSeeds(filtered, seedLog, seedData, scale);
+            filtered.release();
         }
         calibrationLog.close();
         seedLog.close();
