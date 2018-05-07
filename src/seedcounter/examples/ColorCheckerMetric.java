@@ -60,11 +60,11 @@ class ColorCheckerMetric {
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-        MatchingModel MATCHING_MODEL = new MatchingModel(
+        MatchingModel matchingModel = new MatchingModel(
             SIFT.create(), SIFT.create(),
             DescriptorMatcher.FLANNBASED, 0.7f
         );
-        FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
+        FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
         ColorMetric rgb = new EuclideanRGB();
         ColorMetric lab = new EuclideanLab();
 

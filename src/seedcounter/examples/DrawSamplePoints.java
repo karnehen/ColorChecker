@@ -10,18 +10,14 @@ import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
 import seedcounter.common.Quad;
-import seedcounter.regression.ColorSpace;
-import seedcounter.regression.RegressionFactory;
-import seedcounter.regression.RegressionFactory.Order;
-import seedcounter.regression.RegressionModel;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-class Calibration {
+class DrawSamplePoints {
     private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
-    private static final String RESULT_DIR = "src/seedcounter/examples/calibration_results";
+    private static final String RESULT_DIR = "src/seedcounter/examples/draw_sample_points_results";
     private static final String REFERENCE_FILE = "reference.png";
 
     public static void main(String[] args) {
@@ -44,8 +40,6 @@ class Calibration {
         File resultDirectory = new File(RESULT_DIR);
         resultDirectory.mkdir();
 
-        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
-
         for (String fileName : inputFiles) {
             System.out.println(fileName);
             Mat image = Imgcodecs.imread(fileName,
@@ -53,15 +47,15 @@ class Calibration {
 
             Quad quad = findColorChecker.findColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
-            ColorChecker checker = new ColorChecker(extractedColorChecker);
-
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             image.release();
+
+            ColorChecker checker = new ColorChecker(extractedColorChecker);
+            Mat samplePoints = checker.drawSamplePoints();
             extractedColorChecker.release();
 
             File inputFile = new File(fileName);
-            Imgcodecs.imwrite(resultDirectory.getAbsolutePath() + "/" + inputFile.getName(), calibrated);
-            calibrated.release();
+            Imgcodecs.imwrite(resultDirectory.getAbsolutePath() + "/" + inputFile.getName(), samplePoints);
+            samplePoints.release();
         }
     }
 }
