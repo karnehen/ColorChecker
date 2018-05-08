@@ -38,7 +38,14 @@ class BackgroundVariance {
                     continue;
                 }
 
-                Mat calibrated = checker.calibrate(image, model, featuresSpace, targetSpace);
+                Mat calibrated;
+                try {
+                    calibrated = checker.calibrate(image, model, featuresSpace, targetSpace);
+                } catch (IllegalStateException e) {
+                    System.out.println("Couldn't calibrate the image " + inputFile + " model: " + model.getName() +
+                            " features " + featuresSpace.name() + " targets " + targetSpace.name() + " skipping...");
+                    continue;
+                }
                 Mat afterSamples = clusterizer.getClusteringSamples(calibrated);
                 calibrated.release();
 

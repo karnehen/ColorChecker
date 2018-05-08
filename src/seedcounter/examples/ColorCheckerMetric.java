@@ -44,7 +44,14 @@ class ColorCheckerMetric {
                     continue;
                 }
 
-                Mat calibrated = checker.calibrate(extractedChecker, model, featuresSpace, targetSpace);
+                Mat calibrated;
+                try {
+                    calibrated = checker.calibrate(extractedChecker, model, featuresSpace, targetSpace);
+                } catch (IllegalStateException e) {
+                    System.out.println("Couldn't calibrate the image " + inputFile + " model: " + model.getName() +
+                            " features " + featuresSpace.name() + " targets " + targetSpace.name() + " skipping...");
+                    continue;
+                }
                 CellColors cellColors = checker.getCellColors(calibrated);
                 calibrated.release();
 

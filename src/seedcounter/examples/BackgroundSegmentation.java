@@ -56,9 +56,16 @@ class BackgroundSegmentation {
             Mat extractedColorChecker = quad.getTransformedField(image);
             ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-            image.release();
-            extractedColorChecker.release();
+            Mat calibrated;
+            try {
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
+            } catch (IllegalStateException e) {
+                System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
+                continue;
+            } finally {
+                image.release();
+                extractedColorChecker.release();
+            }
 
             Mat samples = clusterizer.getClusteringSamples(calibrated);
             Mat[] clusters = clusterizer.clusterize(samples);

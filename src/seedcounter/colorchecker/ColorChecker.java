@@ -61,7 +61,7 @@ public class ColorChecker {
     }
 
     public Mat calibrate(Mat srcImage, RegressionModel model,
-                         ColorSpace featuresSpace, ColorSpace targetSpace) {
+                         ColorSpace featuresSpace, ColorSpace targetSpace) throws IllegalStateException {
         Mat result = srcImage.clone();
         result.convertTo(result, CvType.CV_64FC3);
 
@@ -91,7 +91,8 @@ public class ColorChecker {
         try {
             model.train(train, answers);
         } catch (SingularMatrixException e) {
-            return result;
+            result.release();
+            throw new IllegalStateException("Couldn't calibrate colors given this reference");
         }
 
         for (int i = 0; i + channels < size; i += channels) {

@@ -103,8 +103,15 @@ class CalculateArea {
             Mat extractedColorChecker = quad.getTransformedField(image);
             ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-            image.release();
+            Mat calibrated;
+            try {
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
+            } catch (IllegalStateException e) {
+                System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
+                continue;
+            } finally {
+                image.release();
+            }
 
             Mat mask = getMask(calibrated);
             Mat filtered = Helper.filterByMask(calibrated, mask);
