@@ -204,14 +204,21 @@ class SeedDataset {
             calibrationData.put("model", name);
             seedData.put("model", name);
 
-            Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
-            for (ColorMetric cm : metrics) {
-                String metricName = cm.getClass().getSimpleName();
+            try {
+                Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
+                for (ColorMetric cm : metrics) {
+                    String metricName = cm.getClass().getSimpleName();
                     calibrationData.put("calibrated:" + metricName,
                             String.valueOf(checker.getCellColors(calibratedChecker).
                                     calculateMetric(cm)));
+                }
+                calibratedChecker.release();;
+            } catch (IllegalStateException e) {
+                System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
+                image.release();
+                extractedColorChecker.release();
+                continue;
             }
-            calibratedChecker.release();
 
             printMap(calibrationLog, calibrationData);
             Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);

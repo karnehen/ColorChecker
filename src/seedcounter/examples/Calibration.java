@@ -55,9 +55,16 @@ class Calibration {
             Mat extractedColorChecker = quad.getTransformedField(image);
             ColorChecker checker = new ColorChecker(extractedColorChecker);
 
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-            image.release();
-            extractedColorChecker.release();
+            Mat calibrated;
+            try {
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.XYZ);
+            } catch (IllegalStateException e) {
+                System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
+                continue;
+            } finally {
+                image.release();
+                extractedColorChecker.release();
+            }
 
             File inputFile = new File(fileName);
             Imgcodecs.imwrite(resultDirectory.getAbsolutePath() + "/" + inputFile.getName(), calibrated);
