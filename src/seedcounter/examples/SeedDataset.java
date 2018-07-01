@@ -201,10 +201,6 @@ class SeedDataset {
                                 calculateMetric(cm)));
             }
 
-            String name = model.getClass().getSimpleName();
-            calibrationData.put("model", name);
-            seedData.put("model", name);
-
             try {
                 Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
                 for (ColorMetric cm : metrics) {
@@ -221,17 +217,29 @@ class SeedDataset {
                 continue;
             }
 
+            String name = model.getClass().getSimpleName();
+            calibrationData.put("model", name);
             printMap(calibrationLog, calibrationData);
+
+            // source color data
+            seedData.put("model", "Source");
+            Mat mask = getMask(image);
+            Mat filtered = filterByMask(image, mask);
+            mask.release();
+            printSeeds(filtered, seedLog, seedData, scale);
+            filtered.release();
+
             Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             image.release();
             extractedColorChecker.release();
             findColorChecker.fillColorChecker(calibrated, quad);
 
-            Mat mask = getMask(calibrated);
-            Mat filtered = filterByMask(calibrated, mask);
+            // calibrated color data
+            seedData.put("model", name);
+            mask = getMask(calibrated);
+            filtered = filterByMask(calibrated, mask);
             calibrated.release();
             mask.release();
-
             printSeeds(filtered, seedLog, seedData, scale);
             filtered.release();
         }
