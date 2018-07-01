@@ -149,9 +149,10 @@ class SeedDataset {
     public static void main(String[] args) throws FileNotFoundException {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
+        // BRUTEFORCE is used for reproducibility
         MatchingModel matchingModel = new MatchingModel(
                 SIFT.create(), SIFT.create(),
-                DescriptorMatcher.FLANNBASED, 0.7f
+                DescriptorMatcher.BRUTEFORCE, 0.7f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
