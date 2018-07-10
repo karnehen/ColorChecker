@@ -106,10 +106,10 @@ public class FindColorChecker {
         Mat referenceCorners = new Mat(4, 1, CvType.CV_32FC2);
         Mat corners = new Mat(4, 1, CvType.CV_32FC2);
 
-        referenceCorners.put(0, 0, -0.01 * referenceImage.cols(), -0.01 * referenceImage.rows());
-        referenceCorners.put(1, 0, 1.01 * referenceImage.cols(), -0.01 * referenceImage.rows());
-        referenceCorners.put(2, 0, 1.01 * referenceImage.cols(), 1.01 * referenceImage.rows());
-        referenceCorners.put(3, 0, -0.01 * referenceImage.cols(), 1.01 * referenceImage.rows());
+        referenceCorners.put(0, 0, 0.0, 0.0);
+        referenceCorners.put(1, 0, 1.0 * referenceImage.cols(), 0.0);
+        referenceCorners.put(2, 0, 1.0 * referenceImage.cols(), 1.0 * referenceImage.rows());
+        referenceCorners.put(3, 0, 0.0, 1.0 * referenceImage.rows());
 
         Core.perspectiveTransform(referenceCorners, corners, homography);
 
