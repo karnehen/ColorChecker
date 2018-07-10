@@ -17,10 +17,10 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import org.opencv.xfeatures2d.SIFT;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.common.Helper;
@@ -70,8 +70,8 @@ class CalculateArea {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
         MatchingModel MATCHING_MODEL = new MatchingModel(
-            SIFT.create(), SIFT.create(),
-            DescriptorMatcher.FLANNBASED, 0.7f
+            ORB.create(), ORB.create(),
+            DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
         );
         FindColorChecker f = new FindColorChecker(REFERENCE_FILE, MATCHING_MODEL);
 

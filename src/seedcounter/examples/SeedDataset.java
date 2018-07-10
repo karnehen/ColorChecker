@@ -4,9 +4,9 @@ import javafx.util.Pair;
 import org.apache.commons.io.FileUtils;
 import org.opencv.core.*;
 import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.xfeatures2d.SIFT;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
@@ -151,8 +151,8 @@ class SeedDataset {
 
         // BRUTEFORCE is used for reproducibility
         MatchingModel matchingModel = new MatchingModel(
-                SIFT.create(), SIFT.create(),
-                DescriptorMatcher.BRUTEFORCE, 0.7f
+                ORB.create(), ORB.create(),
+                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
