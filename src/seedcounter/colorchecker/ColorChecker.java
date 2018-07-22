@@ -77,16 +77,7 @@ public class ColorChecker {
         List<DoubleBuffer> train = new ArrayList<>();
         List<DoubleBuffer> answers = new ArrayList<>();
 
-        for (Integer row = 0; row < BGR_REFERENCE_COLORS.size(); ++row) {
-            for (Integer col = 0; col < BGR_REFERENCE_COLORS.get(0).size(); ++col) {
-                List<DoubleBuffer> samplePoints = getSamplePoints(row, col);
-                for (DoubleBuffer s : samplePoints) {
-                    train.add(featuresSpace.convertFromBGR(s, false));
-                    DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
-                    answers.add(targetSpace.convertFromBGR(referenceColor, false));
-                }
-            }
-        }
+        calculateTrainAndAnswers(featuresSpace, targetSpace, train, answers);
 
         try {
             model.train(train, answers);
@@ -108,6 +99,38 @@ public class ColorChecker {
         result.convertTo(result, srcImage.type());
 
         return result;
+    }
+
+    // a wrapper for the getTransformationDeviation method in AbstractOLS class
+    public double getTransformationDeviation(RegressionModel model, ColorSpace featuresSpace) throws IllegalStateException {
+        List<DoubleBuffer> train = new ArrayList<>();
+        List<DoubleBuffer> answers = new ArrayList<>();
+
+        calculateTrainAndAnswers(featuresSpace, featuresSpace, train, answers);
+
+        double deviation;
+
+        try {
+            deviation = model.getTransformationDeviance(train, answers);
+        } catch (SingularMatrixException e) {
+            throw new IllegalStateException("Couldn't calculate the transformation matrix given this reference");
+        }
+
+        return deviation;
+    }
+
+    private void calculateTrainAndAnswers(ColorSpace featuresSpace, ColorSpace targetSpace,
+                                          List<DoubleBuffer> train, List<DoubleBuffer> answers) {
+        for (Integer row = 0; row < BGR_REFERENCE_COLORS.size(); ++row) {
+            for (Integer col = 0; col < BGR_REFERENCE_COLORS.get(0).size(); ++col) {
+                List<DoubleBuffer> samplePoints = getSamplePoints(row, col);
+                for (DoubleBuffer s : samplePoints) {
+                    train.add(featuresSpace.convertFromBGR(s, false));
+                    DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
+                    answers.add(targetSpace.convertFromBGR(referenceColor, false));
+                }
+            }
+        }
     }
 
     public CellColors getCellColors(Mat checkerImage) {
