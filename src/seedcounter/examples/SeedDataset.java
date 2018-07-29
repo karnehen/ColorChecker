@@ -96,7 +96,8 @@ class SeedDataset {
                 }
             }
         }
-        Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0, new Scalar(0.0));
+        Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0,
+                new Scalar(0.0), Core.FILLED);
     }
 
     private static void printSeeds(Mat image, PrintWriter writer,
@@ -110,7 +111,7 @@ class SeedDataset {
             Double area = scale * Imgproc.contourArea(contour);
             if (area < 50.0) {
                 data.put("area", area.toString());
-                printSingleSeed(contours.get(i), image, seedBuffer, writer, data);
+                printSingleSeed(contour, image, seedBuffer, writer, data);
             }
             contour.release();
         }
@@ -120,8 +121,8 @@ class SeedDataset {
 
     private static Mat filterByMask(Mat image, Mat mask) {
         Mat filtered = Helper.filterByMask(image, mask);
-        Range rows = new Range(filtered.rows() / 4, 3 * filtered.rows() / 4);
-        Range cols = new Range(filtered.cols() / 4, 3 * filtered.cols() / 4);
+        Range rows = new Range(filtered.rows() / 3, 2 * filtered.rows() / 3);
+        Range cols = new Range(filtered.cols() / 3, 2 * filtered.cols() / 3);
 
         Mat result = new Mat(filtered, rows, cols);
         filtered.release();
@@ -169,14 +170,6 @@ class SeedDataset {
 
         RegressionModel model = RegressionFactory.createModel(Order.FIRST);
 
-        List<ColorMetric> metrics = new ArrayList<>();
-        metrics.add(EuclideanRGB.create());
-        metrics.add(EuclideanLab.create());
-
-        PrintWriter calibrationLog = new PrintWriter(RESULT_DIR + "/calibration_log.txt");
-        Map<String, String> calibrationData = new HashMap<>();
-        calibrationData.put("header", "1");
-
         PrintWriter seedLog = new PrintWriter(RESULT_DIR + "/seed_log.txt");
         Map<String, String> seedData = new HashMap<>();
         seedData.put("header", "1");
@@ -185,41 +178,22 @@ class SeedDataset {
             System.out.println(fileName);
             Mat image = Imgcodecs.imread(fileName,
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
-            calibrationData.put("file", fileName);
             seedData.put("file", fileName);
 
             Quad quad = findColorChecker.findColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
             ColorChecker checker = new ColorChecker(extractedColorChecker);
             Double scale = checker.pixelArea(quad);
-            calibrationData.put("scale", scale.toString());
 
-            for (ColorMetric cm : metrics) {
-                String metricName = cm.getClass().getSimpleName();
-                calibrationData.put("source:" + metricName,
-                        String.valueOf(checker.getCellColors(extractedColorChecker).
-                                calculateMetric(cm)));
-            }
-
+            Mat calibrated;
             try {
-                Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
-                for (ColorMetric cm : metrics) {
-                    String metricName = cm.getClass().getSimpleName();
-                    calibrationData.put("calibrated:" + metricName,
-                            String.valueOf(checker.getCellColors(calibratedChecker).
-                                    calculateMetric(cm)));
-                }
-                calibratedChecker.release();;
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             } catch (IllegalStateException e) {
                 System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
                 image.release();
                 extractedColorChecker.release();
                 continue;
             }
-
-            String name = model.getClass().getSimpleName();
-            calibrationData.put("model", name);
-            printMap(calibrationLog, calibrationData);
 
             // source color data
             seedData.put("model", "Source");
@@ -229,12 +203,12 @@ class SeedDataset {
             printSeeds(filtered, seedLog, seedData, scale);
             filtered.release();
 
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             image.release();
             extractedColorChecker.release();
             findColorChecker.fillColorChecker(calibrated, quad);
 
             // calibrated color data
+            String name = model.getClass().getSimpleName();
             seedData.put("model", name);
             mask = getMask(calibrated);
             filtered = filterByMask(calibrated, mask);
@@ -243,7 +217,6 @@ class SeedDataset {
             printSeeds(filtered, seedLog, seedData, scale);
             filtered.release();
         }
-        calibrationLog.close();
         seedLog.close();
     }
 }
