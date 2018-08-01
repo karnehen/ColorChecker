@@ -110,8 +110,8 @@ class SeedDataset {
         for (Map<String,String> map : seedData) {
             for (String key : map.keySet()) {
                 data.put(key, map.get(key));
-                printMap(writer, data);
             }
+            printMap(writer, data);
         }
     }
 
