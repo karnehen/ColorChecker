@@ -155,6 +155,9 @@ class SeedDataset {
         whiteMask.release();
 
         int kernelSize = (int)(1.5 / Math.sqrt(scale));
+        if (kernelSize < 10) {
+            kernelSize = 10;
+        }
         Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(kernelSize, kernelSize));
         Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_CLOSE, kernel);
         Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_OPEN, kernel);
