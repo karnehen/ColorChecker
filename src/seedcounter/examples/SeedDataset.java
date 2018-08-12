@@ -7,6 +7,7 @@ import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.xfeatures2d.SIFT;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
@@ -156,6 +157,10 @@ class SeedDataset {
 
         int kernelSize = (int)(1.5 / Math.sqrt(scale));
         if (kernelSize < 10) {
+            if (kernelSize < 3) {
+                mask.release();
+                return null;
+            }
             kernelSize = 10;
         }
         Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(kernelSize, kernelSize));
@@ -171,8 +176,8 @@ class SeedDataset {
 
         // BRUTEFORCE is used for reproducibility
         MatchingModel matchingModel = new MatchingModel(
-                ORB.create(), ORB.create(),
-                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
+                SIFT.create(), SIFT.create(),
+                DescriptorMatcher.BRUTEFORCE, 0.7f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
@@ -215,7 +220,15 @@ class SeedDataset {
             }
 
             seedData.put("type", "source");
+            findColorChecker.fillColorChecker(image, quad);
             Mat mask = getMask(image, scale);
+            if (mask == null) {
+                System.out.println("error");
+                image.release();
+                extractedColorChecker.release();
+                calibrated.release();
+                continue;
+            }
             Mat filtered = filterByMask(image, mask);
             mask.release();
             printSeeds(filtered, seedLog, seedData, scale);
