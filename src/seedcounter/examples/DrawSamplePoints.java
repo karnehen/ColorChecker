@@ -50,7 +50,7 @@ class DrawSamplePoints {
             Mat extractedColorChecker = quad.getTransformedField(image);
             image.release();
 
-            ColorChecker checker = new ColorChecker(extractedColorChecker);
+            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
             Mat samplePoints = checker.drawSamplePoints();
             extractedColorChecker.release();
 
