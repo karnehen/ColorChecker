@@ -1,35 +1,28 @@
 package seedcounter.examples;
 
+import javafx.util.Pair;
+import org.apache.commons.io.FileUtils;
+import org.opencv.core.*;
+import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.ORB;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import seedcounter.colorchecker.ColorChecker;
+import seedcounter.colorchecker.FindColorChecker;
+import seedcounter.colorchecker.MatchingModel;
+import seedcounter.common.Helper;
+import seedcounter.common.Quad;
+import seedcounter.regression.ColorSpace;
+import seedcounter.regression.RegressionFactory;
+import seedcounter.regression.RegressionFactory.Order;
+import seedcounter.regression.RegressionModel;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
-
-import javafx.util.Pair;
-
-import org.apache.commons.io.FileUtils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-
-import seedcounter.colorchecker.ColorChecker;
-import seedcounter.colorchecker.FindColorChecker;
-import seedcounter.common.Helper;
-import seedcounter.colorchecker.MatchingModel;
-import seedcounter.common.Quad;
-import seedcounter.regression.RegressionFactory;
-import seedcounter.regression.ColorSpace;
-import seedcounter.regression.RegressionFactory.Order;
-import seedcounter.regression.RegressionModel;
 
 class CalculateArea {
     private static final String INPUT_FILES = "src/seedcounter/examples/calculate_area_input_files.txt";

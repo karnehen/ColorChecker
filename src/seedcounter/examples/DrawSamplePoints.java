@@ -46,11 +46,11 @@ class DrawSamplePoints {
             Mat image = Imgcodecs.imread(fileName,
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
 
-            Quad quad = findColorChecker.findColorChecker(image);
+            Quad quad = findColorChecker.findBestFitColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
+            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
             image.release();
 
-            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
             Mat samplePoints = checker.drawSamplePoints();
             extractedColorChecker.release();
 

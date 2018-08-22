@@ -161,12 +161,20 @@ public class ColorChecker {
         }
     }
 
+    public double labDeviationFromReference() {
+        return getCellColors(checkerImage, false).calculateMetric(new EuclideanLab());
+    }
+
     public CellColors getCellColors(Mat checkerImage) {
+        return getCellColors(checkerImage, true);
+    }
+
+    public CellColors getCellColors(Mat checkerImage, boolean allPoints) {
         CellColors cellColors = new CellColors();
 
         for (Integer row = 0; row < rowCount(); ++row) {
             for (Integer col = 0; col < colCount(); ++col) {
-                List<DoubleBuffer> actualColors = getSamplePoints(checkerImage, row, col, true);
+                List<DoubleBuffer> actualColors = getSamplePoints(checkerImage, row, col, allPoints);
                 DoubleBuffer referenceColor = DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val);
                 for (DoubleBuffer color : actualColors) {
                     cellColors.addColor(new Color(color), new Color(referenceColor));
@@ -250,13 +258,17 @@ public class ColorChecker {
         final int ITERATIONS = 3;
         final double STEP_CHANGE = 1.2;
         final double THRESHOLD = (row == 0 && col == 3 ? 2.0 : 1.1);
+        final double VARIANCE_THRESHOLD = 100.0;
         final double DISTANCE_COEFFICIENT = 1.5;
 
-        return correctByReference(center, row, col, ITERATIONS, STEP_CHANGE, THRESHOLD, DISTANCE_COEFFICIENT);
+        return correctByReference(center, row, col, ITERATIONS, STEP_CHANGE, THRESHOLD,
+                VARIANCE_THRESHOLD, DISTANCE_COEFFICIENT);
     }
 
     private Point correctByReference(Point center, int row, int col, int iterations, double stepChange,
-                                     double threshold, double distanceCoefficient) {
+                                     double threshold, double varianceThreshold, double distanceCoefficient) {
+        final double INFINITY = 1e9;
+
         Color referenceColor = new Color(DoubleBuffer.wrap(BGR_REFERENCE_COLORS.get(row).get(col).val));
         EuclideanLab metric = new EuclideanLab();
         double xStep = xScale;
@@ -265,13 +277,13 @@ public class ColorChecker {
         for (int iteration = 0; iteration < iterations; ++iteration) {
             List<Point> points = getSurroundingPoints(center);
             int nearestPoint = -1;
-            double nearestDistance = 1e9;
+            double nearestDistance = INFINITY;
 
             for (int i = 0; i < points.size(); ++i) {
                 Point point = points.get(i);
                 int x = (int) (center.x + (point.x - center.x) * distanceCoefficient);
                 int y = (int) (center.y + (point.y - center.y) * distanceCoefficient);
-                if (getValueVariance(x, y) < 100.0) {
+                if (getValueVariance(x, y) < varianceThreshold) {
                     Color color = getMeanColor(x, y);
                     double distance = metric.calculate(color, referenceColor);
                     if (distance < nearestDistance) {
@@ -281,6 +293,9 @@ public class ColorChecker {
                 }
             }
 
+            if (nearestPoint == -1) {
+                return center;
+            }
             Point point = points.get(8 - nearestPoint);
             int x = (int) (center.x + (point.x - center.x));
             int y = (int) (center.y + (point.y - center.y));

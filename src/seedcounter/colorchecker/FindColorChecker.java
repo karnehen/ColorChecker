@@ -1,23 +1,11 @@
 package seedcounter.colorchecker;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 
 import org.opencv.calib3d.Calib3d;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.DMatch;
-import org.opencv.core.KeyPoint;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfDMatch;
-import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
+import org.opencv.core.*;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Feature2D;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -47,18 +35,75 @@ public class FindColorChecker {
         extractor.compute(referenceImage, referenceKeypoints, referenceDescriptors);
     }
 
+    public Quad findBestFitColorChecker(Mat image) {
+        Quad bestQuad = findColorChecker(image);
+        Mat extractedColorChecker = bestQuad.getTransformedField(image);
+        ColorChecker colorChecker = new ColorChecker(extractedColorChecker,
+                false, false);
+        double bestMetric = colorChecker.labDeviationFromReference();
+        extractedColorChecker.release();
+
+        for (double scale : Arrays.asList(0.05, 0.1)) {
+            Quad quad = findColorChecker(image, scale);
+            extractedColorChecker = quad.getTransformedField(image);
+            colorChecker = new ColorChecker(extractedColorChecker,
+                    false, false);
+            double metric = colorChecker.labDeviationFromReference();
+            extractedColorChecker.release();
+            if (metric < bestMetric) {
+                bestMetric = metric;
+                bestQuad = quad;
+            }
+        }
+
+        return bestQuad;
+    }
+
     public Quad findColorChecker(Mat image) {
+        return getQuad(getHomography(image), 0.0).orElse(fullImageQuad(image));
+    }
+
+    public Quad findColorChecker(Mat image, double scale) {
+        Optional<Quad> quad1 = getQuad(getHomography(image), scale);
+        if (!quad1.isPresent()) {
+            return fullImageQuad(image);
+        }
+
+        image = imageSplice(image, quad1.get());
+        Optional<Quad> quad2 = getQuad(getHomography(image), 0.0);
+        image.release();
+        if (!quad2.isPresent()) {
+            return fullImageQuad(image);
+        }
+
+        return shiftQuad(quad2.get(), quad1.get());
+    }
+
+    private Quad fullImageQuad(Mat image) {
+        return new Quad(
+                new Point(0.0, 0.0),
+                new Point(image.cols() - 1, 0.0),
+                new Point(image.cols() - 1, image.rows() - 1),
+                new Point(0.0, image.rows() - 1)
+        );
+    }
+
+    private Optional<Mat> getHomography(Mat image) {
         MatOfKeyPoint keypoints = new MatOfKeyPoint();
+        if (image.rows() < 100 || image.cols() < 50) {
+            return Optional.empty();
+        }
         detector.detect(image, keypoints);
+        if ((int) keypoints.size().width * (int) keypoints.size().height < 2) {
+            return Optional.empty();
+        }
 
         MatOfKeyPoint descriptors = new MatOfKeyPoint();
         extractor.compute(image, keypoints, descriptors);
 
         LinkedList<DMatch> goodMatches = getGoodMatches(descriptors);
 
-        Mat homography = getHomography(keypoints, goodMatches);
-
-        return getQuad(homography);
+        return getHomography(keypoints, goodMatches);
     }
 
     private LinkedList<DMatch> getGoodMatches(MatOfKeyPoint descriptors) {
@@ -82,7 +127,7 @@ public class FindColorChecker {
         return goodMatches;
     }
 
-    private Mat getHomography(MatOfKeyPoint keypoints, LinkedList<DMatch> goodMatches) {
+    private Optional<Mat> getHomography(MatOfKeyPoint keypoints, LinkedList<DMatch> goodMatches) {
         List<KeyPoint> referenceKeypointlist = referenceKeypoints.toList();
         List<KeyPoint> keypointlist = keypoints.toList();
 
@@ -99,22 +144,28 @@ public class FindColorChecker {
         MatOfPoint2f matOfPoint2f = new MatOfPoint2f();
         matOfPoint2f.fromList(points);
 
-        return Calib3d.findHomography(referenceMatOfPoint2f, matOfPoint2f, Calib3d.RANSAC, 3);
+        return Optional.of(Calib3d.findHomography(
+                referenceMatOfPoint2f, matOfPoint2f, Calib3d.RANSAC, 3))
+                .filter(x -> x.cols() > 0 && x.rows() > 0);
     }
 
-    private Quad getQuad(Mat homography) {
-        Mat referenceCorners = new Mat(4, 1, CvType.CV_32FC2);
+    private Optional<Quad> getQuad(Optional<Mat> homography, double scale) {
+        if (!homography.isPresent()) {
+            return Optional.empty();
+        }
+
         Mat corners = new Mat(4, 1, CvType.CV_32FC2);
+        Mat referenceCorners = new Mat(4, 1, CvType.CV_32FC2);
 
-        referenceCorners.put(0, 0, 0.0, 0.0);
-        referenceCorners.put(1, 0, 1.0 * referenceImage.cols(), 0.0);
-        referenceCorners.put(2, 0, 1.0 * referenceImage.cols(), 1.0 * referenceImage.rows());
-        referenceCorners.put(3, 0, 0.0, 1.0 * referenceImage.rows());
+        referenceCorners.put(0, 0, -scale * referenceImage.cols(), -scale * referenceImage.rows());
+        referenceCorners.put(1, 0, (1.0 + scale) * referenceImage.cols(), -scale * referenceImage.rows());
+        referenceCorners.put(2, 0, (1.0 + scale) * referenceImage.cols(), (1.0 + scale) * referenceImage.rows());
+        referenceCorners.put(3, 0, -scale * referenceImage.cols(), (1.0 + scale) * referenceImage.rows());
 
-        Core.perspectiveTransform(referenceCorners, corners, homography);
+        Core.perspectiveTransform(referenceCorners, corners, homography.get());
 
-        return new Quad(new Point(corners.get(0, 0)),new Point(corners.get(1, 0)),
-                new Point(corners.get(2, 0)), new Point(corners.get(3, 0)));
+        return Optional.of(new Quad(new Point(corners.get(0, 0)),new Point(corners.get(1, 0)),
+                new Point(corners.get(2, 0)), new Point(corners.get(3, 0))));
     }
 
     public void fillColorChecker(Mat image, Quad quad) {
@@ -122,6 +173,54 @@ public class FindColorChecker {
 
         points.fromArray(quad.getPoints());
         Imgproc.fillConvexPoly(image, points, getBackgroundColor(image, quad));
+    }
+
+    private Mat imageSplice(Mat image, Quad quad) {
+        Range rows = new Range(Math.max(0, top(quad)), Math.min(image.rows() - 1, bottom(quad)));
+        Range cols = new Range(Math.max(0, left(quad)), Math.min(image.cols() - 1, right(quad)));
+
+        return new Mat(image, rows, cols);
+    }
+
+    private Quad shiftQuad(Quad quad, Quad shift) {
+        return new Quad(
+                shiftPoint(quad.tl(), shift),
+                shiftPoint(quad.tr(), shift),
+                shiftPoint(quad.br(), shift),
+                shiftPoint(quad.bl(), shift)
+        );
+    }
+
+    private Point shiftPoint(Point point, Quad shift) {
+        return new Point(point.x + left(shift), point.y + top(shift));
+    }
+
+    private int left(Quad quad) {
+        return (int) Math.min(
+                Math.min(quad.tl().x, quad.tr().x),
+                Math.min(quad.bl().x, quad.br().x)
+        );
+    }
+
+    private int right(Quad quad) {
+        return (int) Math.max(
+                Math.max(quad.tl().x, quad.tr().x),
+                Math.max(quad.bl().x, quad.br().x)
+        );
+    }
+
+    private int top(Quad quad) {
+        return (int) Math.min(
+                Math.min(quad.tl().y, quad.tr().y),
+                Math.min(quad.bl().y, quad.br().y)
+        );
+    }
+
+    private int bottom(Quad quad) {
+        return (int) Math.max(
+                Math.max(quad.tl().y, quad.tr().y),
+                Math.max(quad.bl().y, quad.br().y)
+        );
     }
 
     private Scalar getBackgroundColor(Mat image, Quad quad) {
