@@ -12,7 +12,7 @@ public class Helper {
     public static Mat whiteThreshold(Mat image) {
         Mat result = image.clone();
         Imgproc.cvtColor(result, result, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.threshold(result, result, 160.0, 255.0, Imgproc.THRESH_BINARY_INV);
+        Imgproc.threshold(result, result, 240.0, 255.0, Imgproc.THRESH_BINARY_INV);
 
         return result;
     }
