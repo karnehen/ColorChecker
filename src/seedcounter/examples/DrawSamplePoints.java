@@ -3,8 +3,8 @@ package seedcounter.examples;
 import org.apache.commons.io.FileUtils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.features2d.BRISK;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
@@ -25,8 +25,8 @@ class DrawSamplePoints {
 
         // BRUTEFORCE is used for reproducibility, for production evaluation change to FLANNBASED
         MatchingModel matchingModel = new MatchingModel(
-                ORB.create(), ORB.create(),
-                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
+                BRISK.create(), BRISK.create(),
+                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.75f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 

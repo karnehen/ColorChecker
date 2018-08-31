@@ -257,7 +257,7 @@ public class ColorChecker {
     private Point correctByReference(Point center, int row, int col) {
         final int ITERATIONS = 3;
         final double STEP_CHANGE = 1.2;
-        final double THRESHOLD = (row == 0 && col == 3 ? 2.0 : 1.1);
+        final double THRESHOLD = (row <= 1 && col == 3 ? 2.0 : 1.1);
         final double VARIANCE_THRESHOLD = 100.0;
         final double DISTANCE_COEFFICIENT = 1.5;
 

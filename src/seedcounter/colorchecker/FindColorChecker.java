@@ -43,7 +43,7 @@ public class FindColorChecker {
         double bestMetric = colorChecker.labDeviationFromReference();
         extractedColorChecker.release();
 
-        for (double scale : Arrays.asList(0.05, 0.1)) {
+        for (double scale : Arrays.asList(0.05, 0.1, 0.2, 0.4)) {
             Quad quad = findColorChecker(image, scale);
             extractedColorChecker = quad.getTransformedField(image);
             colorChecker = new ColorChecker(extractedColorChecker,
@@ -102,6 +102,10 @@ public class FindColorChecker {
         extractor.compute(image, keypoints, descriptors);
 
         LinkedList<DMatch> goodMatches = getGoodMatches(descriptors);
+
+        if (goodMatches.isEmpty()) {
+            return Optional.empty();
+        }
 
         return getHomography(keypoints, goodMatches);
     }
@@ -176,10 +180,18 @@ public class FindColorChecker {
     }
 
     private Mat imageSplice(Mat image, Quad quad) {
-        Range rows = new Range(Math.max(0, top(quad)), Math.min(image.rows() - 1, bottom(quad)));
-        Range cols = new Range(Math.max(0, left(quad)), Math.min(image.cols() - 1, right(quad)));
+        Range rows = new Range(clipRow(top(quad), image), clipRow(bottom(quad), image) + 1);
+        Range cols = new Range(clipCol(left(quad), image), clipCol(right(quad), image) + 1);
 
         return new Mat(image, rows, cols);
+    }
+
+    private int clipRow(int row, Mat image) {
+        return Math.max(0, Math.min(image.rows() - 1, row));
+    }
+
+    private int clipCol(int col, Mat image) {
+        return Math.max(0, Math.min(image.cols() - 1, col));
     }
 
     private Quad shiftQuad(Quad quad, Quad shift) {
