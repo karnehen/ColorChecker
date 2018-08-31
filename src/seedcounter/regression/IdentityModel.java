@@ -8,6 +8,11 @@ public class IdentityModel implements RegressionModel {
     public void train(List<DoubleBuffer> train, List<DoubleBuffer> answers) {}
 
     @Override
+    public double getTransformationDeviance(List<DoubleBuffer> source, List<DoubleBuffer> target) {
+        return 0.0;
+    }
+
+    @Override
     public void calibrate(DoubleBuffer c) {}
 
     @Override

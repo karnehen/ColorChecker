@@ -34,17 +34,17 @@ public class Color {
 
     public double lightness() {
         calculateLab();
-        return channel(lab, 0);
+        return channel(lab, 0) / 2.55;
     }
 
     public double a() {
         calculateLab();
-        return channel(lab, 1);
+        return channel(lab, 1) - 128.0;
     }
 
     public double b() {
         calculateLab();
-        return channel(lab, 2);
+        return channel(lab, 2) - 128.0;
     }
 
     private void calculateLab() {
@@ -55,7 +55,7 @@ public class Color {
     }
 
     private Scalar bgrToLabScalar(Scalar color) {
-        Mat bgr = new Mat(1, 1, CvType.CV_32FC3, color);
+        Mat bgr = new Mat(1, 1, CvType.CV_8UC4, color);
         Mat lab = new Mat(1, 1, CvType.CV_32FC3);
         Imgproc.cvtColor(bgr, lab, Imgproc.COLOR_BGR2Lab);
 

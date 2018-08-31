@@ -4,6 +4,9 @@ import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.LUDecomposition;
+import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
 import seedcounter.colormetric.Color;
@@ -18,6 +21,7 @@ public abstract class AbstractOLS implements RegressionModel {
         this.intercept = intercept;
     }
 
+    @Override
     public void train(List<DoubleBuffer> train, List<DoubleBuffer> answers) {
         List<Double> answers1 = new ArrayList<>();
         List<Double> answers2 = new ArrayList<>();
@@ -32,6 +36,44 @@ public abstract class AbstractOLS implements RegressionModel {
         beta1 = trainChannel(train, answers1);
         beta2 = trainChannel(train, answers2);
         beta3 = trainChannel(train, answers3);
+    }
+
+    @Override
+    public double getTransformationDeviance(List<DoubleBuffer> source, List<DoubleBuffer> target) {
+        List<List<Double>> targetFeatures = new ArrayList<>();
+
+        int featuresCount = getFeatures(target.get(0)).length;
+
+        for (int i = 0; i < featuresCount; ++i) {
+            targetFeatures.add(new ArrayList<>());
+        }
+
+        for (DoubleBuffer c : target) {
+            double[] features = getFeatures(c);
+
+            for (int i = 0; i < features.length; ++i) {
+                targetFeatures.get(i).add(features[i]);
+            }
+        }
+
+        int dim = featuresCount + (intercept ? 1 : 0);
+        RealMatrix matrix = new Array2DRowRealMatrix(dim, dim);
+
+        if (intercept) {
+            matrix.setEntry(0, 0, 1.0);
+            for (int col = 1; col < dim; ++col) {
+                matrix.setEntry(0, col, 0.0);
+            }
+        }
+
+        for (int index = 0; index < targetFeatures.size(); ++index) {
+            List<Double> answers = targetFeatures.get(index);
+            int row = index + (intercept ? 1 : 0);
+
+            matrix.setRow(row, trainChannel(source, answers));
+        }
+
+        return 1.0 - new LUDecomposition(matrix).getDeterminant();
     }
 
     private double[] trainChannel(List<DoubleBuffer> trainSet, List<Double> answers) {

@@ -44,7 +44,7 @@ class Calibration {
         File resultDirectory = new File(RESULT_DIR);
         resultDirectory.mkdir();
 
-        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
+        RegressionModel model = RegressionFactory.createModel(Order.SECOND);
 
         for (String fileName : inputFiles) {
             System.out.println(fileName);
@@ -57,7 +57,13 @@ class Calibration {
 
             Mat calibrated;
             try {
-                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.XYZ);
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
+                System.out.println("Source to calibrated: 1 - det[H] == "
+                        + checker.getTransformationDeviation(model, ColorSpace.RGB));
+
+                ColorChecker calibratedChecker = new ColorChecker((quad.getTransformedField(calibrated)));
+                System.out.println("Calibrated to calibrated: 1 - det[H] == "
+                        + calibratedChecker.getTransformationDeviation(model, ColorSpace.RGB));
             } catch (IllegalStateException e) {
                 System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
                 continue;
