@@ -43,7 +43,7 @@ public class FindColorChecker {
         double bestMetric = colorChecker.labDeviationFromReference();
         extractedColorChecker.release();
 
-        for (double scale : Arrays.asList(0.05, 0.1, 0.2, 0.4)) {
+        for (double scale : Arrays.asList(0.05, 0.1, 0.2)) {
             Quad quad = findColorChecker(image, scale);
             extractedColorChecker = quad.getTransformedField(image);
             colorChecker = new ColorChecker(extractedColorChecker,
