@@ -2,8 +2,8 @@ package seedcounter.examples;
 
 import org.apache.commons.io.FileUtils;
 import org.opencv.core.*;
+import org.opencv.features2d.BRISK;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import seedcounter.colorchecker.ColorChecker;
@@ -84,8 +84,8 @@ class SeedDataset {
 
         // BRUTEFORCE is used for reproducibility
         MatchingModel matchingModel = new MatchingModel(
-                ORB.create(), ORB.create(),
-                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
+                BRISK.create(), BRISK.create(),
+                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.75f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
@@ -112,9 +112,10 @@ class SeedDataset {
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
             seedData.put("file", fileName);
 
-            Quad quad = findColorChecker.findColorChecker(image);
+            Quad quad = findColorChecker.findBestFitColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
-            ColorChecker checker = new ColorChecker(extractedColorChecker);
+            findColorChecker.fillColorChecker(image, quad);
+            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
             Double scale = checker.pixelArea(quad);
 
             Mat calibrated;
@@ -128,18 +129,15 @@ class SeedDataset {
             }
 
             seedData.put("type", "source");
-            Mat mask = SeedUtils.getMask(image, scale);
+            Mat mask = SeedUtils.getMask(calibrated, scale);
             Mat filtered = SeedUtils.filterByMask(image, mask);
-            mask.release();
             printSeeds(filtered, seedLog, seedData, scale);
             filtered.release();
 
             image.release();
             extractedColorChecker.release();
-            findColorChecker.fillColorChecker(calibrated, quad);
 
             seedData.put("type", "calibrated");
-            mask = SeedUtils.getMask(calibrated, scale);
             filtered = SeedUtils.filterByMask(calibrated, mask);
             calibrated.release();
             mask.release();
