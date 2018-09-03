@@ -130,6 +130,14 @@ class SeedDataset {
 
             seedData.put("type", "source");
             Mat mask = SeedUtils.getMask(calibrated, scale);
+            if (mask == null) {
+                System.out.println("error");
+                image.release();
+                extractedColorChecker.release();
+                calibrated.release();
+                continue;
+            }
+
             Mat filtered = SeedUtils.filterByMask(image, mask);
             printSeeds(filtered, seedLog, seedData, scale);
             filtered.release();
