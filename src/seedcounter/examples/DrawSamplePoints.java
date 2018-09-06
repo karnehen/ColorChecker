@@ -48,7 +48,7 @@ class DrawSamplePoints {
 
             Quad quad = findColorChecker.findBestFitColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
-            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
+            ColorChecker checker = new ColorChecker(extractedColorChecker, false, true);
             image.release();
 
             Mat samplePoints = checker.drawSamplePoints();

@@ -45,7 +45,7 @@ public class ColorChecker {
     private static final List<Integer> RIGHT_INDEXES = Arrays.asList(2, 5, 8);
 
     public ColorChecker(Mat image) {
-        this(image, true, true);
+        this(image, false, true);
     }
 
     /*
