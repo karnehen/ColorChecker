@@ -1,6 +1,7 @@
 package seedcounter.common;
 
 import javafx.util.Pair;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -42,8 +43,13 @@ public class SeedUtils {
         return result;
     }
 
-    public static List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat seedBuffer,
-                                                       double threshold) {
+    public static List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat imageForFilter,
+                                                       Mat seedBuffer) {
+        return getSeedData(contour, image, imageForFilter, seedBuffer, 0.5, 150.0);
+    }
+
+    public static List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat imageForFilter, Mat seedBuffer,
+                                                       double threshold, double whiteThreshold) {
         Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0,
                 new Scalar(255.0), Core.FILLED);
         List<Map<String,String>> result = new ArrayList<>();
@@ -68,10 +74,13 @@ public class SeedUtils {
             }
         }
 
+        List<Double> minChannelValues = new ArrayList<>();
+
         for (int y = minY; y <= maxY; ++y) {
             for (int x = minX; x <= maxX; ++x) {
                 if (seedBuffer.get(y, x)[0] > 0.0) {
                     double[] color = image.get(y, x);
+                    double[] colorForFilter = imageForFilter.get(y, x);
                     if (color[0] + color[1] + color[2] > 0.0) {
                         Map<String,String> map = new HashMap<>();
                         map.put("x", String.valueOf(x));
@@ -79,6 +88,7 @@ public class SeedUtils {
                         map.put("blue", String.valueOf(color[0]));
                         map.put("green", String.valueOf(color[1]));
                         map.put("red", String.valueOf(color[2]));
+                        minChannelValues.add(Math.min(colorForFilter[0], Math.min(colorForFilter[1], colorForFilter[2])));
                         result.add(map);
                     }
                 }
@@ -90,6 +100,13 @@ public class SeedUtils {
 
         if (result.size() / (maxX - minX + 1.0) / (maxY - minY + 1.0) < threshold) {
             result.clear();
+        } else {
+            Percentile percentile = new Percentile();
+            percentile.setData(minChannelValues.stream().mapToDouble(x -> x).toArray());
+
+            if (percentile.evaluate(10.0) > whiteThreshold) {
+                result.clear();
+            }
         }
 
         return result;

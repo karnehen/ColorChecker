@@ -57,16 +57,16 @@ class SeedDataset {
         }
     }
 
-    private static void printSeeds(Mat image, PrintWriter writer,
+    private static void printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
             Map<String, String> data, Double scale) {
-        List<MatOfPoint> contours = Helper.getContours(image);
+        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
         Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
 
         int seedNumber = 0;
         for (MatOfPoint contour : contours) {
             Double area = scale * Imgproc.contourArea(contour);
             if (area < 30.0 && area > 5.0) {
-                List<Map<String,String>> seedData = SeedUtils.getSeedData(contour, image, seedBuffer, 0.5);
+                List<Map<String,String>> seedData = SeedUtils.getSeedData(contour, image, imageForFilter, seedBuffer);
                 if (!seedData.isEmpty()) {
                     data.put("seed_number", String.valueOf(seedNumber++));
                     data.put("area", area.toString());
@@ -100,7 +100,7 @@ class SeedDataset {
         File resultDirectory = new File(RESULT_DIR);
         resultDirectory.mkdir();
 
-        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
+        RegressionModel model = RegressionFactory.createModel(Order.THIRD);
 
         PrintWriter seedLog = new PrintWriter(RESULT_DIR + "/seed_log.txt");
         Map<String, String> seedData = new HashMap<>();
@@ -128,7 +128,6 @@ class SeedDataset {
                 continue;
             }
 
-            seedData.put("type", "source");
             Mat mask = SeedUtils.getMask(calibrated, scale);
             if (mask == null) {
                 System.out.println("error");
@@ -138,19 +137,19 @@ class SeedDataset {
                 continue;
             }
 
-            Mat filtered = SeedUtils.filterByMask(image, mask);
-            printSeeds(filtered, seedLog, seedData, scale);
-            filtered.release();
-
+            Mat sourceFiltered = SeedUtils.filterByMask(image, mask);
             image.release();
-            extractedColorChecker.release();
-
-            seedData.put("type", "calibrated");
-            filtered = SeedUtils.filterByMask(calibrated, mask);
+            Mat calibratedFiltered = SeedUtils.filterByMask(calibrated, mask);
             calibrated.release();
             mask.release();
-            printSeeds(filtered, seedLog, seedData, scale);
-            filtered.release();
+            extractedColorChecker.release();
+
+            seedData.put("type", "source");
+            printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
+            seedData.put("type", "calibrated");
+            printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
+            sourceFiltered.release();
+            calibratedFiltered.release();
         }
         seedLog.close();
     }
