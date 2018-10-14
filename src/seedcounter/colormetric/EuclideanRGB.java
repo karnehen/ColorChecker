@@ -1,10 +1,6 @@
 package seedcounter.colormetric;
 
 public class EuclideanRGB implements ColorMetric {
-    public static ColorMetric create() {
-        return new EuclideanRGB();
-    }
-
     @Override
     public double calculate(Color c1, Color c2) {
         return Math.sqrt(

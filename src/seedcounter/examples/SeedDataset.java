@@ -1,20 +1,17 @@
 package seedcounter.examples;
 
-import javafx.util.Pair;
 import org.apache.commons.io.FileUtils;
 import org.opencv.core.*;
+import org.opencv.features2d.BRISK;
 import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
-import seedcounter.colormetric.ColorMetric;
-import seedcounter.colormetric.EuclideanLab;
-import seedcounter.colormetric.EuclideanRGB;
 import seedcounter.common.Helper;
 import seedcounter.common.Quad;
+import seedcounter.common.SeedUtils;
 import seedcounter.regression.ColorSpace;
 import seedcounter.regression.RegressionFactory;
 import seedcounter.regression.RegressionFactory.Order;
@@ -30,11 +27,6 @@ class SeedDataset {
     private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
     private static final String RESULT_DIR = "src/seedcounter/examples/seed_dataset_results";
     private static final String REFERENCE_FILE = "reference.png";
-    // targets and ranges
-    private static final List<Pair<Scalar, Scalar>> SEED_TYPES = Arrays.asList(
-            new Pair<>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
-            new Pair<>(new Scalar(17, 67, 232), new Scalar(50, 50, 50))
-        );
 
     private static void printMap(PrintWriter writer, Map<String, String> map) {
         boolean header = map.containsKey("header");
@@ -56,61 +48,30 @@ class SeedDataset {
         writer.println(builder.toString());
     }
 
-    private static void printSingleSeed(MatOfPoint contour, Mat image, Mat seedBuffer,
-            PrintWriter writer, Map<String, String> data) {
-        Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0,
-                new Scalar(255.0), Core.FILLED);
-
-        int minX = image.cols() - 1;
-        int maxX = 0;
-        int minY = image.rows() - 1;
-        int maxY = 0;
-
-        for (Point point : contour.toList()) {
-            if (point.x < minX) {
-                minX = (int) point.x;
+    private static void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
+        for (Map<String,String> map : seedData) {
+            for (String key : map.keySet()) {
+                data.put(key, map.get(key));
             }
-            if (point.x > maxX) {
-                maxX = (int) point.x;
-            }
-            if (point.y < minY) {
-                minY = (int) point.y;
-            }
-            if (point.y > maxY) {
-                maxY = (int) point.y;
-            }
+            printMap(writer, data);
         }
-
-        for (int y = minY; y <= maxY; ++y) {
-            for (int x = minX; x <= maxX; ++x) {
-                if (seedBuffer.get(y, x)[0] > 0.0) {
-                    double[] color = image.get(y, x);
-                    if (color[0] + color[1] + color[2] > 0.0) {
-                        data.put("x", String.valueOf(x));
-                        data.put("y", String.valueOf(y));
-                        data.put("blue", String.valueOf(color[0]));
-                        data.put("green", String.valueOf(color[1]));
-                        data.put("red", String.valueOf(color[2]));
-                        printMap(writer, data);
-                    }
-                }
-            }
-        }
-        Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0, new Scalar(0.0));
     }
 
-    private static void printSeeds(Mat image, PrintWriter writer,
+    private static void printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
             Map<String, String> data, Double scale) {
-        List<MatOfPoint> contours = Helper.getContours(image);
+        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
         Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
 
-        for (int i = 0; i < contours.size(); ++i) {
-            data.put("seed_number", String.valueOf(i));
-            MatOfPoint contour = contours.get(i);
+        int seedNumber = 0;
+        for (MatOfPoint contour : contours) {
             Double area = scale * Imgproc.contourArea(contour);
-            if (area < 50.0) {
-                data.put("area", area.toString());
-                printSingleSeed(contours.get(i), image, seedBuffer, writer, data);
+            if (area < 30.0 && area > 5.0) {
+                List<Map<String,String>> seedData = SeedUtils.getSeedData(contour, image, imageForFilter, seedBuffer);
+                if (!seedData.isEmpty()) {
+                    data.put("seed_number", String.valueOf(seedNumber++));
+                    data.put("area", area.toString());
+                    printSeedData(data, seedData, writer);
+                }
             }
             contour.release();
         }
@@ -118,41 +79,13 @@ class SeedDataset {
         seedBuffer.release();
     }
 
-    private static Mat filterByMask(Mat image, Mat mask) {
-        Mat filtered = Helper.filterByMask(image, mask);
-        Range rows = new Range(filtered.rows() / 4, 3 * filtered.rows() / 4);
-        Range cols = new Range(filtered.cols() / 4, 3 * filtered.cols() / 4);
-
-        Mat result = new Mat(filtered, rows, cols);
-        filtered.release();
-
-        return result;
-    }
-
-    private static Mat getMask(Mat image) {
-        Mat mask = Helper.binarizeSeed(image, SEED_TYPES);
-        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(50, 50));
-        Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_CLOSE, kernel);
-
-        Mat whiteMask = Helper.whiteThreshold(image);
-        kernel.release();
-        kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(10, 10));
-        Imgproc.morphologyEx(whiteMask, whiteMask, Imgproc.MORPH_CLOSE, kernel);
-
-        Core.bitwise_and(mask, whiteMask, mask);
-        whiteMask.release();
-        kernel.release();
-
-        return mask;
-    }
-
     public static void main(String[] args) throws FileNotFoundException {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
         // BRUTEFORCE is used for reproducibility
         MatchingModel matchingModel = new MatchingModel(
-                ORB.create(), ORB.create(),
-                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.9f
+                BRISK.create(), BRISK.create(),
+                DescriptorMatcher.BRUTEFORCE_HAMMING, 0.75f
         );
         FindColorChecker findColorChecker = new FindColorChecker(REFERENCE_FILE, matchingModel);
 
@@ -167,15 +100,7 @@ class SeedDataset {
         File resultDirectory = new File(RESULT_DIR);
         resultDirectory.mkdir();
 
-        RegressionModel model = RegressionFactory.createModel(Order.FIRST);
-
-        List<ColorMetric> metrics = new ArrayList<>();
-        metrics.add(EuclideanRGB.create());
-        metrics.add(EuclideanLab.create());
-
-        PrintWriter calibrationLog = new PrintWriter(RESULT_DIR + "/calibration_log.txt");
-        Map<String, String> calibrationData = new HashMap<>();
-        calibrationData.put("header", "1");
+        RegressionModel model = RegressionFactory.createModel(Order.THIRD);
 
         PrintWriter seedLog = new PrintWriter(RESULT_DIR + "/seed_log.txt");
         Map<String, String> seedData = new HashMap<>();
@@ -185,35 +110,17 @@ class SeedDataset {
             System.out.println(fileName);
             Mat image = Imgcodecs.imread(fileName,
                     Imgcodecs.CV_LOAD_IMAGE_ANYCOLOR | Imgcodecs.CV_LOAD_IMAGE_ANYDEPTH);
-            calibrationData.put("file", fileName);
             seedData.put("file", fileName);
 
-            Quad quad = findColorChecker.findColorChecker(image);
+            Quad quad = findColorChecker.findBestFitColorChecker(image);
             Mat extractedColorChecker = quad.getTransformedField(image);
-            ColorChecker checker = new ColorChecker(extractedColorChecker);
+            findColorChecker.fillColorChecker(image, quad);
+            ColorChecker checker = new ColorChecker(extractedColorChecker, true, true);
             Double scale = checker.pixelArea(quad);
-            calibrationData.put("scale", scale.toString());
 
-            for (ColorMetric cm : metrics) {
-                String metricName = cm.getClass().getSimpleName();
-                calibrationData.put("source:" + metricName,
-                        String.valueOf(checker.getCellColors(extractedColorChecker).
-                                calculateMetric(cm)));
-            }
-
-            String name = model.getClass().getSimpleName();
-            calibrationData.put("model", name);
-            seedData.put("model", name);
-
+            Mat calibrated;
             try {
-                Mat calibratedChecker = checker.calibrate(extractedColorChecker, model, ColorSpace.RGB, ColorSpace.RGB);
-                for (ColorMetric cm : metrics) {
-                    String metricName = cm.getClass().getSimpleName();
-                    calibrationData.put("calibrated:" + metricName,
-                            String.valueOf(checker.getCellColors(calibratedChecker).
-                                    calculateMetric(cm)));
-                }
-                calibratedChecker.release();;
+                calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
             } catch (IllegalStateException e) {
                 System.out.println("Couldn't calibrate the image " + fileName + " skipping...");
                 image.release();
@@ -221,21 +128,29 @@ class SeedDataset {
                 continue;
             }
 
-            printMap(calibrationLog, calibrationData);
-            Mat calibrated = checker.calibrate(image, model, ColorSpace.RGB, ColorSpace.RGB);
-            image.release();
-            extractedColorChecker.release();
-            findColorChecker.fillColorChecker(calibrated, quad);
+            Mat mask = SeedUtils.getMask(calibrated, scale);
+            if (mask == null) {
+                System.out.println("error");
+                image.release();
+                extractedColorChecker.release();
+                calibrated.release();
+                continue;
+            }
 
-            Mat mask = getMask(calibrated);
-            Mat filtered = filterByMask(calibrated, mask);
+            Mat sourceFiltered = SeedUtils.filterByMask(image, mask);
+            image.release();
+            Mat calibratedFiltered = SeedUtils.filterByMask(calibrated, mask);
             calibrated.release();
             mask.release();
+            extractedColorChecker.release();
 
-            printSeeds(filtered, seedLog, seedData, scale);
-            filtered.release();
+            seedData.put("type", "source");
+            printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
+            seedData.put("type", "calibrated");
+            printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
+            sourceFiltered.release();
+            calibratedFiltered.release();
         }
-        calibrationLog.close();
         seedLog.close();
     }
 }
