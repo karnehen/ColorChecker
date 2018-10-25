@@ -5,6 +5,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.PrintWriter;
 import java.util.*;
 
 public class SeedUtils {
@@ -20,11 +21,12 @@ public class SeedUtils {
         Core.bitwise_and(mask, whiteMask, mask);
         whiteMask.release();
 
-        int kernelSize = (int)(1.5 / Math.sqrt(scale));
+        int kernelSize = scale == null ? 10 : (int)(1.5 / Math.sqrt(scale));
         if (kernelSize < 10) {
             kernelSize = 10;
         }
         Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(kernelSize, kernelSize));
+
         Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_CLOSE, kernel);
         Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_OPEN, kernel);
         kernel.release();
@@ -110,5 +112,56 @@ public class SeedUtils {
         }
 
         return result;
+    }
+
+    public static void printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
+                                  Map<String, String> data, Double scale) {
+        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
+        Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
+
+        int seedNumber = 0;
+        for (MatOfPoint contour : contours) {
+            Double area = scale * Imgproc.contourArea(contour);
+            if (area < 30.0 && area > 5.0) {
+                List<Map<String,String>> seedData = getSeedData(contour, image, imageForFilter, seedBuffer);
+                if (!seedData.isEmpty()) {
+                    data.put("seed_number", String.valueOf(seedNumber++));
+                    data.put("area", area.toString());
+                    printSeedData(data, seedData, writer);
+                }
+            }
+            contour.release();
+        }
+
+        seedBuffer.release();
+    }
+
+    private static void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
+        for (Map<String,String> map : seedData) {
+            for (String key : map.keySet()) {
+                data.put(key, map.get(key));
+            }
+            printMap(writer, data);
+        }
+    }
+
+    private static void printMap(PrintWriter writer, Map<String, String> map) {
+        boolean header = map.containsKey("header");
+        map.remove("header");
+        StringBuilder builder = new StringBuilder();
+        if (header) {
+            for (String key : map.keySet()) {
+                builder.append(key);
+                builder.append("\t");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+            builder.append("\n");
+        }
+        for (String key : map.keySet()) {
+            builder.append(map.get(key));
+            builder.append("\t");
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        writer.println(builder.toString());
     }
 }

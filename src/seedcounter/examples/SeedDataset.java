@@ -5,11 +5,9 @@ import org.opencv.core.*;
 import org.opencv.features2d.BRISK;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 import seedcounter.colorchecker.ColorChecker;
 import seedcounter.colorchecker.FindColorChecker;
 import seedcounter.colorchecker.MatchingModel;
-import seedcounter.common.Helper;
 import seedcounter.common.Quad;
 import seedcounter.common.SeedUtils;
 import seedcounter.regression.ColorSpace;
@@ -27,57 +25,6 @@ class SeedDataset {
     private static final String INPUT_FILES = "src/seedcounter/examples/input_files.txt";
     private static final String RESULT_DIR = "src/seedcounter/examples/seed_dataset_results";
     private static final String REFERENCE_FILE = "reference.png";
-
-    private static void printMap(PrintWriter writer, Map<String, String> map) {
-        boolean header = map.containsKey("header");
-        map.remove("header");
-        StringBuilder builder = new StringBuilder();
-        if (header) {
-            for (String key : map.keySet()) {
-                builder.append(key);
-                builder.append("\t");
-            }
-            builder.deleteCharAt(builder.length() - 1);
-            builder.append("\n");
-        }
-        for (String key : map.keySet()) {
-            builder.append(map.get(key));
-            builder.append("\t");
-        }
-        builder.deleteCharAt(builder.length() - 1);
-        writer.println(builder.toString());
-    }
-
-    private static void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
-        for (Map<String,String> map : seedData) {
-            for (String key : map.keySet()) {
-                data.put(key, map.get(key));
-            }
-            printMap(writer, data);
-        }
-    }
-
-    private static void printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
-            Map<String, String> data, Double scale) {
-        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
-        Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
-
-        int seedNumber = 0;
-        for (MatOfPoint contour : contours) {
-            Double area = scale * Imgproc.contourArea(contour);
-            if (area < 30.0 && area > 5.0) {
-                List<Map<String,String>> seedData = SeedUtils.getSeedData(contour, image, imageForFilter, seedBuffer);
-                if (!seedData.isEmpty()) {
-                    data.put("seed_number", String.valueOf(seedNumber++));
-                    data.put("area", area.toString());
-                    printSeedData(data, seedData, writer);
-                }
-            }
-            contour.release();
-        }
-
-        seedBuffer.release();
-    }
 
     public static void main(String[] args) throws FileNotFoundException {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -145,9 +92,9 @@ class SeedDataset {
             extractedColorChecker.release();
 
             seedData.put("type", "source");
-            printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
+            SeedUtils.printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
             seedData.put("type", "calibrated");
-            printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
+            SeedUtils.printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
             sourceFiltered.release();
             calibratedFiltered.release();
         }
