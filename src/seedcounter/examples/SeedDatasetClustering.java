@@ -154,7 +154,7 @@ class SeedDatasetClustering {
             System.out.println(file.getAbsolutePath());
             seedData.put("camera", file.camera());
             seedData.put("file", file.fileName());
-            seedData.put("cc", file.isCC() ? "1" : "0");
+            seedData.put("colorchecker", file.isCC() ? "1" : "0");
             seedData.put("experiment", file.fileType().name());
 
             File resultDirectory = file.getDirectory();
@@ -174,22 +174,26 @@ class SeedDatasetClustering {
 
             if (file.isCC()) {
                 cc = file.getCC(image);
-                Quad quad = findColorChecker.findBestFitColorChecker(image);
+                Quad quad = findColorChecker.findBestFitColorChecker(cc);
 
-                if (quad.getArea() / cc.cols() / cc.rows() < 0.25) { // bad CC retrieval
-                    extractedColorChecker = quad.getTransformedField(image);
+                if (quad.getArea() / cc.cols() / cc.rows() < 0.25) {
+                    extractedColorChecker = quad.getTransformedField(cc);
                     checker = new ColorChecker(extractedColorChecker);
-                    if (checker.labDeviationFromReference() > 25) { // bad CC retrieval
+                    if (checker.labDeviationFromReference() > 25) { // bad CC detection
                         checker = null;
+                        System.out.println("Couldn't detect colorchecker: colors deviate too much from the reference");
                         extractedColorChecker.release();
                         extractedColorChecker = null;
                     } else {
                         scale = checker.pixelArea(quad);
                     }
+                } else { // bad CC detection
+                    checker = null;
+                    System.out.println("Couldn't detect colorchecker: detected area is too large");
                 }
 
                 if (LOG_IMAGES) {
-                    File ccDirectory = new File(resultDirectory.getAbsolutePath() + "/" + "CC");
+                    File ccDirectory = new File(resultDirectory.getAbsolutePath() + "/" + "ColorChecker");
                     ccDirectory.mkdir();
                     Imgcodecs.imwrite(ccDirectory.getAbsolutePath() + "/" + file.fileName(), cc);
                 }
@@ -222,8 +226,10 @@ class SeedDatasetClustering {
                         } else {
                             forFilter = SeedUtils.filterByMask(source, mask);
                         }
+                        seedData.put("calibrated", "1");
                         source.release();
                     } catch (IllegalStateException e) {
+                        seedData.put("calibrated", "0");
                         System.out.println("Couldn't calibrate the image " + file.fileName() + " using the source...");
                         mask = SeedUtils.getMask(source, scale);
                         colorData = SeedUtils.filterByMask(source, mask);
@@ -236,6 +242,7 @@ class SeedDatasetClustering {
                     }
                     calibrated.release();
                 } else {
+                    seedData.put("calibrated", "0");
                     mask = SeedUtils.getMask(source, scale);
                     colorData = SeedUtils.filterByMask(source, mask);
                     forFilter = colorData;
