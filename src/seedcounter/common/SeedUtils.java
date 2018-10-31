@@ -114,12 +114,16 @@ public class SeedUtils {
         return result;
     }
 
-    public static void printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
+    public static int printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
                                   Map<String, String> data, Double scale) {
+        return printSeeds(image, imageForFilter, writer, data, scale, 0);
+    }
+
+    public static int printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
+                                  Map<String, String> data, Double scale, int seedNumber) {
         List<MatOfPoint> contours = Helper.getContours(imageForFilter);
         Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
 
-        int seedNumber = 0;
         for (MatOfPoint contour : contours) {
             Double area = scale * Imgproc.contourArea(contour);
             if (area < 30.0 && area > 5.0) {
@@ -134,6 +138,8 @@ public class SeedUtils {
         }
 
         seedBuffer.release();
+
+        return seedNumber;
     }
 
     private static void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {

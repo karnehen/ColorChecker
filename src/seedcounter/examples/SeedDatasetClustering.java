@@ -199,6 +199,8 @@ class SeedDatasetClustering {
                 }
             }
 
+            int seedNumber = 0;
+
             for (Integer class_ : classes.keySet()){
                 File classDirectory = new File(resultDirectory.getAbsolutePath() + "/" + class_);
                 if (LOG_IMAGES) {
@@ -254,7 +256,7 @@ class SeedDatasetClustering {
                 }
 
                 seedData.put("class", class_.toString());
-                SeedUtils.printSeeds(colorData, forFilter, seedLog, seedData, scale);
+                seedNumber = SeedUtils.printSeeds(colorData, forFilter, seedLog, seedData, scale, seedNumber);
 
                 mask.release();
                 colorData.release();
