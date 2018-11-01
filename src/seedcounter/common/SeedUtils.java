@@ -7,8 +7,67 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SeedUtils {
+    public SeedUtils() {
+        this(0.5, 150.0, true);
+    }
+
+    public SeedUtils(double threshold, double whiteThreshold, boolean filterByArea) {
+        this.threshold = threshold;
+        this.whiteThreshold = whiteThreshold;
+        this.filterByArea = filterByArea;
+    }
+
+    private final double MIN_AREA = 5.0;
+    private final double MAX_AREA = 30.0;
+    private final double BRIGHTNESS_PERCENTILE = 10.0;
+
+    private final double threshold;
+    private final double whiteThreshold;
+    private final boolean filterByArea;
+
+    private int seedNumber = 0;
+    private int xOffset = 0;
+    private int yOffset = 0;
+
+    public double getThreshold() {
+        return threshold;
+    }
+
+    public double getWhiteThreshold() {
+        return whiteThreshold;
+    }
+
+    public boolean getFileterByArea() {
+        return filterByArea;
+    }
+
+    public void setSeedNumber(int seedNumber) {
+        this.seedNumber = seedNumber;
+    }
+
+    public int getSeedNumber() {
+        return seedNumber;
+    }
+
+    public void setXOffset(int xOffset) {
+        this.xOffset = xOffset;
+    }
+
+    public int getXOffset() {
+        return xOffset;
+    }
+
+    public void setYOffset(int yOffset) {
+        this.yOffset = yOffset;
+    }
+
+    public int getYOffset() {
+        return yOffset;
+    }
+
     // targets and ranges
     public static final List<Pair<Scalar, Scalar>> SEED_TYPES = Arrays.asList(
             new Pair<>(new Scalar(4, 97, 108), new Scalar(50, 100, 80)),
@@ -35,23 +94,33 @@ public class SeedUtils {
     }
 
     public static Mat filterByMask(Mat image, Mat mask) {
-        Mat filtered = Helper.filterByMask(image, mask);
-        Range rows = new Range(filtered.rows() / 4, 3 * filtered.rows() / 4);
-        Range cols = new Range(filtered.cols() / 4, 3 * filtered.cols() / 4);
-
-        Mat result = new Mat(filtered, rows, cols);
-        filtered.release();
-
-        return result;
+        return Helper.filterByMask(image, mask);
     }
 
-    public static List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat imageForFilter,
-                                                       Mat seedBuffer) {
-        return getSeedData(contour, image, imageForFilter, seedBuffer, 0.5, 150.0);
+    public int printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
+                                  Map<String, String> data, Double scale) {
+        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
+        Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
+
+        for (MatOfPoint contour : contours) {
+            Double area = scale * Imgproc.contourArea(contour);
+            if (!filterByArea || (area < MAX_AREA && area > MIN_AREA)) {
+                List<Map<String,String>> seedData = getSeedData(contour, image, imageForFilter, seedBuffer);
+                if (!seedData.isEmpty()) {
+                    data.put("seed_number", String.valueOf(seedNumber++));
+                    data.put("area", area.toString());
+                    printSeedData(data, seedData, writer);
+                }
+            }
+            contour.release();
+        }
+
+        seedBuffer.release();
+
+        return seedNumber;
     }
 
-    public static List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat imageForFilter, Mat seedBuffer,
-                                                       double threshold, double whiteThreshold) {
+    private List<Map<String,String>> getSeedData(MatOfPoint contour, Mat image, Mat imageForFilter, Mat seedBuffer) {
         Imgproc.drawContours(seedBuffer, Collections.singletonList(contour), 0,
                 new Scalar(255.0), Core.FILLED);
         List<Map<String,String>> result = new ArrayList<>();
@@ -85,8 +154,8 @@ public class SeedUtils {
                     double[] colorForFilter = imageForFilter.get(y, x);
                     if (color[0] + color[1] + color[2] > 0.0) {
                         Map<String,String> map = new HashMap<>();
-                        map.put("x", String.valueOf(x));
-                        map.put("y", String.valueOf(y));
+                        map.put("x", String.valueOf(x + xOffset));
+                        map.put("y", String.valueOf(y + yOffset));
                         map.put("blue", String.valueOf(color[0]));
                         map.put("green", String.valueOf(color[1]));
                         map.put("red", String.valueOf(color[2]));
@@ -106,7 +175,7 @@ public class SeedUtils {
             Percentile percentile = new Percentile();
             percentile.setData(minChannelValues.stream().mapToDouble(x -> x).toArray());
 
-            if (percentile.evaluate(10.0) > whiteThreshold) {
+            if (percentile.evaluate(BRIGHTNESS_PERCENTILE) > whiteThreshold) {
                 result.clear();
             }
         }
@@ -114,44 +183,17 @@ public class SeedUtils {
         return result;
     }
 
-    public static int printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
-                                  Map<String, String> data, Double scale) {
-        return printSeeds(image, imageForFilter, writer, data, scale, 0);
-    }
-
-    public static int printSeeds(Mat image, Mat imageForFilter, PrintWriter writer,
-                                  Map<String, String> data, Double scale, int seedNumber) {
-        List<MatOfPoint> contours = Helper.getContours(imageForFilter);
-        Mat seedBuffer = Mat.zeros(image.rows(), image.cols(), CvType.CV_8UC1);
-
-        for (MatOfPoint contour : contours) {
-            Double area = scale * Imgproc.contourArea(contour);
-            if (area < 30.0 && area > 5.0) {
-                List<Map<String,String>> seedData = getSeedData(contour, image, imageForFilter, seedBuffer);
-                if (!seedData.isEmpty()) {
-                    data.put("seed_number", String.valueOf(seedNumber++));
-                    data.put("area", area.toString());
-                    printSeedData(data, seedData, writer);
-                }
-            }
-            contour.release();
-        }
-
-        seedBuffer.release();
-
-        return seedNumber;
-    }
-
-    private static void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
+    private void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
         for (Map<String,String> map : seedData) {
-            for (String key : map.keySet()) {
+            for (String key : map.keySet().stream()
+                    .sorted().collect(Collectors.toList())) {
                 data.put(key, map.get(key));
             }
             printMap(writer, data);
         }
     }
 
-    private static void printMap(PrintWriter writer, Map<String, String> map) {
+    private void printMap(PrintWriter writer, Map<String, String> map) {
         boolean header = map.containsKey("header");
         map.remove("header");
         StringBuilder builder = new StringBuilder();

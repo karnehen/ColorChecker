@@ -120,7 +120,8 @@ class SeedsRetrieval {
             image.release();
         }
 
-        SeedUtils.printSeeds(colorData, forFilter, seedLog, seedData, scale);
+        SeedUtils seedUtils = new SeedUtils(0.0, 255.0, false);
+        seedUtils.printSeeds(colorData, forFilter, seedLog, seedData, scale);
 
         mask.release();
         colorData.release();

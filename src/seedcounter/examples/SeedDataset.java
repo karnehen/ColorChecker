@@ -84,17 +84,26 @@ class SeedDataset {
                 continue;
             }
 
-            Mat sourceFiltered = SeedUtils.filterByMask(image, mask);
+            Range rows = new Range(image.rows() / 4, 3 * image.rows() / 4);
+            Range cols = new Range(image.cols() / 4, 3 * image.cols() / 4);
+
+            Mat imageCropped = new Mat(image, rows, cols);
             image.release();
-            Mat calibratedFiltered = SeedUtils.filterByMask(calibrated, mask);
+            Mat sourceFiltered = SeedUtils.filterByMask(imageCropped, mask);
+            imageCropped.release();
+            Mat calibratedCropped = new Mat(calibrated, rows, cols);
             calibrated.release();
+            Mat calibratedFiltered = SeedUtils.filterByMask(calibratedCropped, mask);
+            calibratedCropped.release();
             mask.release();
             extractedColorChecker.release();
 
+            SeedUtils seedUtils = new SeedUtils();
             seedData.put("type", "source");
-            SeedUtils.printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
+            seedUtils.printSeeds(sourceFiltered, sourceFiltered, seedLog, seedData, scale);
             seedData.put("type", "calibrated");
-            SeedUtils.printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
+            seedUtils.setSeedNumber(0);
+            seedUtils.printSeeds(calibratedFiltered, sourceFiltered, seedLog, seedData, scale);
             sourceFiltered.release();
             calibratedFiltered.release();
         }
