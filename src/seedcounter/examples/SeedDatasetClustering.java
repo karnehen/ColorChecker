@@ -206,10 +206,10 @@ class SeedDatasetClustering {
          *   threshold - отфильтровать зерна, площдь которых меньше доли X от площади bounding box вокруг зерна
          *   whiteThreshold - отфильтровать зерна, у которых процентиль 10% от яркости больше X
          *   filterByArea - отфильтровать зерна с площадью <5мм2 или >30мм2 (границы заданы константами в SeedUtils)
-         * рекомендуемые параметры: 0.5, 150.0, true
+         * рекомендуемые параметры для фильтрации: 0.5, 150.0, true
          * без дополнительной фильтрации: 0.0, 255.0, false
          */
-        SeedUtils seedUtils = new SeedUtils(0.5, 150.0, true);
+        SeedUtils seedUtils = new SeedUtils(0.0, 255.0, false);
 
         // Куда писать результат
         PrintWriter seedLog = new PrintWriter(RESULT_DIR + "/seed_log.txt");

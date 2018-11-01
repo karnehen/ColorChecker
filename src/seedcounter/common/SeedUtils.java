@@ -185,31 +185,34 @@ public class SeedUtils {
 
     private void printSeedData(Map<String,String> data, List<Map<String,String>> seedData, PrintWriter writer) {
         for (Map<String,String> map : seedData) {
-            for (String key : map.keySet().stream()
-                    .sorted().collect(Collectors.toList())) {
+            for (String key : map.keySet()) {
                 data.put(key, map.get(key));
             }
             printMap(writer, data);
         }
     }
 
-    private void printMap(PrintWriter writer, Map<String, String> map) {
+    private void printMap(PrintWriter writer, Map<String,String> map) {
         boolean header = map.containsKey("header");
         map.remove("header");
         StringBuilder builder = new StringBuilder();
         if (header) {
-            for (String key : map.keySet()) {
+            for (String key : sortedKeySet(map)) {
                 builder.append(key);
                 builder.append("\t");
             }
             builder.deleteCharAt(builder.length() - 1);
             builder.append("\n");
         }
-        for (String key : map.keySet()) {
+        for (String key : sortedKeySet(map)) {
             builder.append(map.get(key));
             builder.append("\t");
         }
         builder.deleteCharAt(builder.length() - 1);
         writer.println(builder.toString());
+    }
+
+    private List<String> sortedKeySet(Map<String,String> map) {
+        return map.keySet().stream().sorted().collect(Collectors.toList());
     }
 }
